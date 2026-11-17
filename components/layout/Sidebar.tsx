@@ -13,7 +13,6 @@ import {
   PieChart,
   UserCheck,
   Shield,
-  HelpCircle,
   Clock
 } from 'lucide-react';
 

@@ -25,6 +25,65 @@ export interface DepartmentStats {
   approvedThisMonth: number;
 }
 
+export interface DepartmentFacultyMember {
+  id: string;
+  employee_id: string;
+  name: string;
+  email: string;
+  designation: string;
+  created_at: string;
+}
+
+/**
+ * Fetch the HOD's own department name from Supabase
+ */
+export async function getHodDepartmentInfo(
+  departmentId?: string | null
+): Promise<{ id: string; department_name: string } | null> {
+  if (!departmentId || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('departments')
+      .select('id, department_name')
+      .eq('id', departmentId)
+      .single();
+
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch faculty members belonging strictly to the HOD's department
+ */
+export async function getHodDepartmentFaculty(
+  departmentId?: string | null
+): Promise<DepartmentFacultyMember[]> {
+  if (!departmentId || !isSupabaseConfigured()) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, employee_id, name, email, designation, created_at')
+      .eq('department_id', departmentId)
+      .eq('role', 'faculty')
+      .order('name', { ascending: true });
+
+    if (error || !data) {
+      console.error('Error fetching department faculty:', error);
+      return [];
+    }
+
+    return data as DepartmentFacultyMember[];
+  } catch (err) {
+    console.error('Exception in getHodDepartmentFaculty:', err);
+    return [];
+  }
+}
+
 /**
  * Fetch all pending and recent leave applications under the HOD's department
  */
@@ -63,22 +122,30 @@ export async function getHodDepartmentApplications(): Promise<HodLeaveApplicatio
 
     if (!data) return [];
 
-    return data.map((item: any) => {
+    return data.map((item) => {
       let uiStatus: 'Pending HOD' | 'Approved' | 'Rejected' | 'Clarification Requested' = 'Pending HOD';
       if (item.status === 'approved') uiStatus = 'Approved';
       else if (item.status === 'rejected') uiStatus = 'Rejected';
       else if (item.status === 'clarification') uiStatus = 'Clarification Requested';
 
-      const latestApproval = item.approvals && item.approvals.length > 0 ? item.approvals[item.approvals.length - 1] : null;
+      const approvalsArr = (item.approvals as unknown as Array<{ remarks?: string }>) || [];
+      const latestApproval = approvalsArr.length > 0 ? approvalsArr[approvalsArr.length - 1] : null;
+      const profileObj = item.profiles as unknown as {
+        name?: string;
+        employee_id?: string;
+        designation?: string;
+        departments?: { department_name?: string } | null;
+      } | null;
+      const leaveTypeObj = item.leave_types as unknown as { name?: string } | null;
 
       return {
         id: item.id,
         facultyId: item.faculty_id,
-        facultyName: item.profiles?.name || 'Academic Faculty',
-        department: item.profiles?.departments?.department_name || 'Academic Department',
-        designation: item.profiles?.designation || 'Assistant Professor',
-        employeeId: item.profiles?.employee_id || 'FAC-2026',
-        leaveType: item.leave_types?.name || 'General Leave',
+        facultyName: profileObj?.name || 'Academic Faculty',
+        department: profileObj?.departments?.department_name || 'Academic Department',
+        designation: profileObj?.designation || 'Assistant Professor',
+        employeeId: profileObj?.employee_id || 'FAC-2026',
+        leaveType: leaveTypeObj?.name || 'General Leave',
         startDate: item.from_date,
         endDate: item.to_date,
         totalDays: Number(item.days),
@@ -150,22 +217,25 @@ export async function getDepartmentStats(departmentId?: string | null): Promise<
   const isLive = isSupabaseConfigured();
   if (!isLive) {
     return {
-      totalFaculty: 24,
-      activeLeavesToday: 2,
-      pendingApprovals: 3,
-      approvedThisMonth: 18,
+      totalFaculty: 0,
+      activeLeavesToday: 0,
+      pendingApprovals: 0,
+      approvedThisMonth: 0,
     };
   }
 
   try {
-    // 1. Total faculty
-    let facultyQuery = supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'faculty');
+    let facultyCount = 0;
     if (departmentId) {
-      facultyQuery = facultyQuery.eq('department_id', departmentId);
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'faculty')
+        .eq('department_id', departmentId);
+      facultyCount = count ?? 0;
     }
-    const { count: facultyCount } = await facultyQuery;
 
-    // 2. Applications stats
+    // Applications stats (RLS scopes to HOD's department)
     const { data: apps } = await supabase.from('leave_applications').select('id, status, from_date, to_date');
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -176,18 +246,17 @@ export async function getDepartmentStats(departmentId?: string | null): Promise<
     ).length;
 
     return {
-      totalFaculty: facultyCount || 1,
+      totalFaculty: facultyCount,
       activeLeavesToday: activeToday,
       pendingApprovals: pending,
       approvedThisMonth: approved,
     };
-  } catch (e) {
+  } catch {
     return {
-      totalFaculty: 24,
-      activeLeavesToday: 2,
-      pendingApprovals: 3,
-      approvedThisMonth: 18,
+      totalFaculty: 0,
+      activeLeavesToday: 0,
+      pendingApprovals: 0,
+      approvedThisMonth: 0,
     };
   }
 }
-

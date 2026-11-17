@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -13,7 +12,6 @@ import {
   getFacultyApplications,
   getFacultyProfile,
   DetailedLeaveApplication,
-  FacultyProfileWithDept,
 } from '@/lib/supabase/faculty';
 import {
   PlusSquare,
@@ -32,7 +30,6 @@ import {
 } from 'lucide-react';
 
 export default function FacultyDashboardPage() {
-  const router = useRouter();
   const { user, profile } = useAuth();
 
   const [loadingData, setLoadingData] = useState(true);
@@ -48,34 +45,41 @@ export default function FacultyDashboardPage() {
     { type: 'Duty Leave (DL)', total: 8, used: 3, remaining: 5, border: 'border-t-indigo-900' },
   ];
 
-  const loadDashboardData = useCallback(async () => {
-    if (!user) return;
-    setLoadingData(true);
-    setErrorState(null);
-
-    try {
-      // 1. Fetch faculty profile with department if possible
-      const fullProfile = await getFacultyProfile(user.id);
-      if (fullProfile?.department_name) {
-        setFacultyDept(fullProfile.department_name);
-      } else if (profile?.department_id) {
-        setFacultyDept('Department of Computer Science & Engineering');
-      }
-
-      // 2. Fetch only this faculty's real leave applications from Supabase
-      const apps = await getFacultyApplications(user.id);
-      setApplications(apps);
-    } catch (err) {
-      console.error('Failed to load faculty dashboard data:', err);
-      setErrorState('Could not retrieve application records from database.');
-    } finally {
-      setLoadingData(false);
-    }
-  }, [user, profile]);
-
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    let isCancelled = false;
+    if (!user) return;
+
+    (async () => {
+      try {
+        // 1. Fetch faculty profile with department if possible
+        const fullProfile = await getFacultyProfile(user.id);
+        if (isCancelled) return;
+        if (fullProfile?.department_name) {
+          setFacultyDept(fullProfile.department_name);
+        } else if (profile?.department_id) {
+          setFacultyDept('Department of Computer Science & Engineering');
+        }
+
+        // 2. Fetch only this faculty's real leave applications from Supabase
+        const apps = await getFacultyApplications(user.id);
+        if (isCancelled) return;
+        setApplications(apps);
+      } catch (err) {
+        if (!isCancelled) {
+          console.error('Failed to load faculty dashboard data:', err);
+          setErrorState('Could not retrieve application records from database.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoadingData(false);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user, profile]);
 
   // Derived counts
   const pendingCount = applications.filter(

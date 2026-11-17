@@ -94,7 +94,7 @@ export default function LoginPage() {
   };
 
   // Quick fill test credentials for fast evaluation
-  const handleQuickFill = (testEmail: string, testRole: string) => {
+  const handleQuickFill = (testEmail: string) => {
     setEmail(testEmail);
     setPassword('password123');
     setErrorMessage(null);
@@ -149,7 +149,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickFill('faculty@university.edu', 'faculty')}
+                onClick={() => handleQuickFill('faculty@university.edu')}
                 className="text-left p-2 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 transition-colors"
               >
                 <div className="flex items-center space-x-1.5 text-xs font-bold text-blue-900">
@@ -161,7 +161,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => handleQuickFill('hod@university.edu', 'hod')}
+                onClick={() => handleQuickFill('hod@university.edu')}
                 className="text-left p-2 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 transition-colors"
               >
                 <div className="flex items-center space-x-1.5 text-xs font-bold text-blue-900">
@@ -173,7 +173,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin@university.edu', 'admin')}
+                onClick={() => handleQuickFill('admin@university.edu')}
                 className="text-left p-2 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 transition-colors"
               >
                 <div className="flex items-center space-x-1.5 text-xs font-bold text-blue-900">
@@ -291,9 +291,9 @@ export default function LoginPage() {
             </div>
 
             <div className="bg-blue-50 border border-blue-200 p-2.5 text-blue-900">
-              <p className="font-semibold">Institutional SSO Notice</p>
+              <p className="font-semibold">Institutional Account Policy</p>
               <p className="text-[10px] text-blue-800 mt-0.5 leading-relaxed">
-                Academic staff accounts are provisioned and synchronized with the Central Registry. For role upgrades or password resets, contact Academic IT at <span className="font-mono font-bold">it-desk@university.edu</span>.
+                Public registration is disabled for security. HOD accounts are provisioned by the System Administrator, and Faculty accounts are created by your Department HOD or Admin. Contact <span className="font-mono font-bold">it-desk@university.edu</span> for credential assistance.
               </p>
             </div>
           </div>

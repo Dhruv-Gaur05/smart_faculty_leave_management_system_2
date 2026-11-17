@@ -24,9 +24,7 @@ import {
   Send,
   Phone,
   UploadCloud,
-  FileCheck2,
-  Info,
-  X
+  Info
 } from 'lucide-react';
 
 export default function ApplyLeavePage() {

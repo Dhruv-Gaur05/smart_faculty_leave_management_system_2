@@ -67,7 +67,7 @@ export async function getFacultyProfile(facultyId: string): Promise<FacultyProfi
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, departments(department_name)')
+        .select('*, departments:department_id(department_name)')
         .eq('id', facultyId)
         .single();
 

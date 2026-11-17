@@ -17,14 +17,9 @@ import {
   FileText,
   PlusSquare,
   Search,
-  Filter,
   ArrowRight,
   Loader2,
   AlertCircle,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  HelpCircle,
   RefreshCw
 } from 'lucide-react';
 
@@ -40,9 +35,11 @@ export default function FacultyApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'clarification'>('all');
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isRefresh = false) => {
     if (!user) return;
-    setLoading(true);
+    if (isRefresh) {
+      setLoading(true);
+    }
     setErrorState(null);
 
     try {
@@ -63,8 +60,36 @@ export default function FacultyApplicationsPage() {
   }, [user]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let isCancelled = false;
+    if (!user) return;
+
+    (async () => {
+      try {
+        const prof = await getFacultyProfile(user.id);
+        if (isCancelled) return;
+        if (prof?.department_name) {
+          setDepartmentName(prof.department_name);
+        }
+
+        const apps = await getFacultyApplications(user.id);
+        if (isCancelled) return;
+        setApplications(apps);
+      } catch (err) {
+        if (!isCancelled) {
+          console.error('Failed to load applications:', err);
+          setErrorState('Could not retrieve applications from database.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user]);
 
   // Derived counts
   const totalCount = applications.length;
@@ -213,7 +238,7 @@ export default function FacultyApplicationsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={loadData}
+                onClick={() => loadData(true)}
                 disabled={loading}
                 className="text-xs"
               >
