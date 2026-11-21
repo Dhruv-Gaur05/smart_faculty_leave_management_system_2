@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { createStaffAccount } from '@/lib/supabase/admin';
+import { generateSecurePassword } from '@/lib/utils/password';
 import {
   UserPlus,
   Loader2,
@@ -73,11 +74,7 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
   };
 
   const generateTempPassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#';
-    let generated = 'Uni@';
-    for (let i = 0; i < 6; i++) {
-      generated += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const generated = generateSecurePassword('Uni@');
     setPassword(generated);
     setShowPassword(true);
   };
@@ -147,9 +144,9 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
       )}
 
       {/* Role & Department Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
-          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
             Staff Role <span className="text-rose-600">*</span>
           </label>
           {mode === 'admin' ? (
@@ -157,7 +154,7 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
               value={role}
               onChange={(e) => handleRoleChange(e.target.value as 'hod' | 'faculty')}
               disabled={submitting}
-              className="w-full py-2 px-3 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 bg-white font-semibold"
+              className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 font-bold shadow-2xs"
             >
               <option value="hod">Head of Department (HOD)</option>
               <option value="faculty">Faculty Member</option>
@@ -167,13 +164,13 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
               type="text"
               readOnly
               value="Faculty Member (Locked)"
-              className="w-full py-2 px-3 text-xs border border-slate-300 bg-slate-100 text-slate-600 font-semibold"
+              className="w-full py-2.5 px-3.5 text-xs border border-slate-300 bg-slate-100 text-slate-800 font-bold rounded-lg"
             />
           )}
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
             Department <span className="text-rose-600">*</span>
           </label>
           {mode === 'admin' ? (
@@ -182,7 +179,7 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
               onChange={(e) => setDepartmentId(e.target.value)}
               required
               disabled={submitting || departments.length === 0}
-              className="w-full py-2 px-3 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 bg-white font-medium"
+              className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 font-medium shadow-2xs"
             >
               {departments.length === 0 ? (
                 <option value="">-- Create a Department First --</option>
@@ -195,8 +192,8 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
               )}
             </select>
           ) : (
-            <div className="w-full py-2 px-3 text-xs border border-slate-300 bg-slate-100 text-slate-700 font-semibold flex items-center gap-1.5 truncate">
-              <Building2 className="w-3.5 h-3.5 text-blue-900 shrink-0" />
+            <div className="w-full py-2.5 px-3.5 text-xs border border-slate-300 bg-slate-100 text-slate-800 font-bold rounded-lg flex items-center gap-2 truncate">
+              <Building2 className="w-4 h-4 text-blue-900 shrink-0" />
               <span className="truncate">{lockedDepartment?.name || 'Unassigned Department'}</span>
             </div>
           )}
@@ -204,9 +201,9 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
       </div>
 
       {/* Name & Employee ID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
-          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
             Full Name <span className="text-rose-600">*</span>
           </label>
           <input
@@ -216,12 +213,12 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={submitting}
-            className="w-full py-2 px-3 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 bg-white"
+            className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 placeholder:text-slate-500 font-medium shadow-2xs"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
             Employee ID <span className="text-rose-600">*</span>
           </label>
           <input
@@ -231,15 +228,15 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
             disabled={submitting}
-            className="w-full py-2 px-3 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 bg-white font-mono"
+            className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 placeholder:text-slate-500 font-mono font-bold shadow-2xs"
           />
         </div>
       </div>
 
       {/* Email & Designation */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
-          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
             Institutional Email <span className="text-rose-600">*</span>
           </label>
           <input
@@ -249,12 +246,12 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={submitting}
-            className="w-full py-2 px-3 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 bg-white"
+            className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 placeholder:text-slate-500 font-medium shadow-2xs"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
             Designation <span className="text-rose-600">*</span>
           </label>
           <input
@@ -264,23 +261,23 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
             value={designation}
             onChange={(e) => setDesignation(e.target.value)}
             disabled={submitting}
-            className="w-full py-2 px-3 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 bg-white"
+            className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 placeholder:text-slate-500 font-medium shadow-2xs"
           />
         </div>
       </div>
 
       {/* Temporary Password */}
       <div>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-1.5">
           <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
             Initial Login Password <span className="text-rose-600">*</span>
           </label>
           <button
             type="button"
             onClick={generateTempPassword}
-            className="text-[11px] text-blue-900 font-semibold hover:underline flex items-center gap-1"
+            className="text-[11px] text-blue-900 font-bold hover:text-blue-700 hover:underline flex items-center gap-1 transition-colors"
           >
-            <KeyRound className="w-3 h-3" /> Auto-Generate
+            <KeyRound className="w-3 h-3 text-amber-600" /> Auto-Generate
           </button>
         </div>
         <div className="relative">
@@ -292,24 +289,24 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={submitting}
-            className="w-full py-2 pl-3 pr-9 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 bg-white font-mono"
+            className="w-full py-2.5 pl-3.5 pr-10 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 placeholder:text-slate-500 font-mono font-medium shadow-2xs"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-800 transition-colors p-0.5"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
-        <p className="text-[10px] text-slate-500 mt-1">
+        <p className="text-[11px] text-slate-600 font-medium mt-1.5">
           Email is auto-confirmed. Share these credentials directly with the {role === 'hod' ? 'HOD' : 'faculty member'}.
         </p>
       </div>
 
       {/* Modal Footer */}
-      <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+      <div className="pt-4 border-t border-slate-200 flex justify-end gap-2.5">
         <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={submitting}>
           Cancel
         </Button>

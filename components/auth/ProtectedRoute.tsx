@@ -29,7 +29,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent animate-spin rounded-full" />
+        <div className="w-12 h-12 border-4 border-blue-900 border-t-amber-500 animate-spin rounded-full shadow-md" />
         <div className="text-center">
           <p className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             Authenticating Session...
@@ -56,7 +56,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (allowedRoles && allowedRoles.length > 0 && !role) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-10 h-10 border-4 border-blue-900 border-t-transparent animate-spin rounded-full" />
+        <div className="w-10 h-10 border-4 border-blue-900 border-t-amber-500 animate-spin rounded-full shadow-sm" />
         <p className="text-xs text-slate-600 font-medium">Verifying role permissions...</p>
       </div>
     );
@@ -78,16 +78,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     return (
       <div className="max-w-xl mx-auto py-12 px-4">
-        <div className="bg-white border-2 border-rose-600 shadow-sm p-6 text-center space-y-4">
-          <div className="w-14 h-14 bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center mx-auto">
+        <div className="bg-white border border-rose-200 rounded-2xl shadow-xl p-8 text-center space-y-5">
+          <div className="w-14 h-14 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 flex items-center justify-center mx-auto shadow-xs">
             <ShieldAlert className="w-8 h-8" />
           </div>
 
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-widest text-rose-700 bg-rose-100 px-2 py-0.5 border border-rose-300">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-rose-950 bg-rose-100 px-3 py-1 rounded-full border border-rose-300 inline-block">
               Access Restricted
             </span>
-            <h2 className="text-xl font-bold text-slate-900 mt-2 font-serif uppercase">
+            <h2 className="text-xl font-bold text-slate-900 mt-3 font-serif uppercase tracking-tight">
               Unauthorized Portal Area
             </h2>
             <p className="text-xs text-slate-600 mt-2 leading-relaxed">
@@ -95,13 +95,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             </p>
           </div>
 
-          <div className="bg-slate-50 p-3 border border-slate-200 text-left text-xs space-y-1">
-            <p><span className="font-semibold text-slate-700">Logged in as:</span> {profile?.name || user.email}</p>
-            <p><span className="font-semibold text-slate-700">Designation:</span> {profile?.designation || 'Academic Staff'}</p>
-            <p><span className="font-semibold text-slate-700">Required Role:</span> <span className="uppercase font-mono text-rose-700 font-semibold">{allowedRoles.join(' or ')}</span></p>
+          <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl text-left text-xs space-y-1.5 shadow-2xs">
+            <p><span className="font-bold text-slate-700">Logged in as:</span> <span className="text-slate-900">{profile?.name || user.email}</span></p>
+            <p><span className="font-bold text-slate-700">Designation:</span> <span className="text-slate-900">{profile?.designation || 'Academic Staff'}</span></p>
+            <p><span className="font-bold text-slate-700">Required Role:</span> <span className="uppercase font-mono text-rose-700 font-bold">{allowedRoles.join(' or ')}</span></p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+          <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
             <Button
               variant="primary"
               size="sm"

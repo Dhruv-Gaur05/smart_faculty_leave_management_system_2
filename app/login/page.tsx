@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import {
   Lock,
   Mail,
   GraduationCap,
   AlertCircle,
+  CheckCircle2,
   Loader2,
   ShieldCheck,
   HelpCircle,
@@ -21,9 +23,12 @@ import {
 } from 'lucide-react';
 import { UserRole } from '@/types/database';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, user, role, loading: authLoading, isLiveSupabase } = useAuth();
+
+  const resetSuccess = searchParams.get('reset') === 'success';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,7 +74,7 @@ export default function LoginPage() {
         // Map common Supabase error messages to clear university instructions
         const msg = error.message;
         if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
-          setErrorMessage('Invalid institutional email or password. Please verify your credentials.');
+          setErrorMessage('Invalid institutional email or password. Please verify your credentials or click "Forgot Password?".');
         } else if (msg.includes('Email not confirmed') || msg.includes('email_not_confirmed')) {
           setErrorMessage('Your institutional email address has not been confirmed yet. Please check your inbox or ask the admin to confirm your account in Supabase.');
         } else if (msg.includes('Failed to fetch') || msg.includes('network error')) {
@@ -103,17 +108,17 @@ export default function LoginPage() {
   return (
     <div className="max-w-xl mx-auto py-6 sm:py-10">
       {/* University Card Container */}
-      <div className="bg-white border-2 border-slate-300 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
         {/* Academic Card Header */}
-        <div className="bg-blue-900 text-white p-5 border-b-4 border-slate-950 text-center">
-          <div className="w-12 h-12 bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-2 text-white">
-            <GraduationCap className="w-7 h-7" />
+        <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-slate-900 text-white p-6 sm:p-7 border-b-2 border-amber-500 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mx-auto mb-3 text-amber-300 shadow-xs">
+            <GraduationCap className="w-8 h-8" />
           </div>
-          <h2 className="text-lg font-bold uppercase tracking-wider font-serif">
+          <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wider font-serif">
             Central Authentication Portal
           </h2>
-          <p className="text-xs text-blue-200 mt-1">
-            Faculty & Academic Staff Single Sign-On (SSO)
+          <p className="text-xs sm:text-sm text-blue-200 mt-1 font-medium">
+            Academic Staff &amp; Faculty Single Sign-On (SSO)
           </p>
         </div>
 
@@ -150,48 +155,61 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleQuickFill('faculty@university.edu')}
-                className="text-left p-2 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 transition-colors"
+                className="text-left p-2.5 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 rounded-lg transition-colors cursor-pointer"
               >
                 <div className="flex items-center space-x-1.5 text-xs font-bold text-blue-900">
                   <FileText className="w-3.5 h-3.5 shrink-0" />
                   <span>Faculty</span>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate mt-0.5">faculty@university.edu</div>
+                <div className="text-[11px] text-slate-600 truncate mt-0.5 font-mono">faculty@university.edu</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleQuickFill('hod@university.edu')}
-                className="text-left p-2 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 transition-colors"
+                className="text-left p-2.5 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 rounded-lg transition-colors cursor-pointer"
               >
                 <div className="flex items-center space-x-1.5 text-xs font-bold text-blue-900">
                   <UserCheck className="w-3.5 h-3.5 shrink-0" />
                   <span>HOD</span>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate mt-0.5">hod@university.edu</div>
+                <div className="text-[11px] text-slate-600 truncate mt-0.5 font-mono">hod@university.edu</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleQuickFill('admin@university.edu')}
-                className="text-left p-2 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 transition-colors"
+                className="text-left p-2.5 bg-white border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 rounded-lg transition-colors cursor-pointer"
               >
                 <div className="flex items-center space-x-1.5 text-xs font-bold text-blue-900">
                   <Shield className="w-3.5 h-3.5 shrink-0" />
                   <span>Admin</span>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate mt-0.5">admin@university.edu</div>
+                <div className="text-[11px] text-slate-600 truncate mt-0.5 font-mono">admin@university.edu</div>
               </button>
             </div>
           </div>
 
+          {/* Success Banner if redirected from reset password */}
+          {resetSuccess && (
+            <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs flex items-start space-x-2.5 shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-bold text-emerald-900">Password Updated Successfully</p>
+                <p className="mt-0.5 leading-relaxed text-emerald-800">
+                  Your new password is now active. Please sign in with your updated credentials.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Error Banner */}
           {errorMessage && (
-            <div className="p-3 bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-start space-x-2.5">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-950 text-xs flex items-start space-x-2.5 shadow-2xs">
+              <AlertCircle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-bold">Authentication Failed</p>
-                <p className="mt-0.5 leading-relaxed">{errorMessage}</p>
+                <p className="font-bold text-rose-900">Authentication Failed</p>
+                <p className="mt-0.5 leading-relaxed text-rose-950">{errorMessage}</p>
               </div>
             </div>
           )}
@@ -199,7 +217,7 @@ export default function LoginPage() {
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
                 Institutional Email Address <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
@@ -211,16 +229,24 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 rounded-none disabled:bg-slate-100"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs bg-white text-slate-900 border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg disabled:bg-slate-100 font-medium placeholder:text-slate-500 shadow-2xs"
                 />
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Account Password <span className="text-rose-600">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Account Password <span className="text-rose-600">*</span>
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-[11px] font-bold text-blue-900 hover:text-blue-950 hover:underline cursor-pointer"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -230,13 +256,13 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full pl-9 pr-10 py-2 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 rounded-none disabled:bg-slate-100"
+                  className="w-full pl-9 pr-10 py-2.5 text-xs bg-white text-slate-900 border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg disabled:bg-slate-100 font-medium placeholder:text-slate-500 shadow-2xs"
                 />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-700 focus:outline-none cursor-pointer"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -248,17 +274,17 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center py-2.5 px-4 bg-blue-900 hover:bg-blue-950 text-white font-semibold text-xs uppercase tracking-wider border border-transparent shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center py-3 px-4 bg-blue-900 hover:bg-blue-950 active:bg-slate-950 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    <span>Verifying Credentials & Role...</span>
+                    <span>Verifying Credentials &amp; Role...</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4 mr-1.5" />
-                    <span>Authenticate & Access Portal</span>
+                    <span>Authenticate &amp; Access Portal</span>
                   </>
                 )}
               </button>
@@ -276,12 +302,12 @@ export default function LoginPage() {
               <div className="bg-slate-50 border border-slate-200 p-2">
                 <span className="font-bold text-slate-800 block">Faculty</span>
                 <span className="text-slate-500 font-mono text-[9px] block">/faculty/dashboard</span>
-                <span className="text-slate-600 mt-1 block">Apply & track leaves</span>
+                <span className="text-slate-600 mt-1 block">Apply &amp; track leaves</span>
               </div>
               <div className="bg-slate-50 border border-slate-200 p-2">
                 <span className="font-bold text-slate-800 block">HOD</span>
                 <span className="text-slate-500 font-mono text-[9px] block">/hod/dashboard</span>
-                <span className="text-slate-600 mt-1 block">Review & approve</span>
+                <span className="text-slate-600 mt-1 block">Review &amp; approve</span>
               </div>
               <div className="bg-slate-50 border border-slate-200 p-2">
                 <span className="font-bold text-slate-800 block">Admin</span>
@@ -290,15 +316,29 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 p-2.5 text-blue-900">
-              <p className="font-semibold">Institutional Account Policy</p>
-              <p className="text-[10px] text-blue-800 mt-0.5 leading-relaxed">
-                Public registration is disabled for security. HOD accounts are provisioned by the System Administrator, and Faculty accounts are created by your Department HOD or Admin. Contact <span className="font-mono font-bold">it-desk@university.edu</span> for credential assistance.
+            <div className="bg-blue-50/80 rounded-xl border border-blue-200 p-3.5 text-blue-950">
+              <p className="font-bold text-xs">Institutional Account Policy</p>
+              <p className="text-[11px] text-blue-900 mt-0.5 leading-relaxed">
+                Public registration is restricted for security. HOD accounts are provisioned by Central Administration, and Faculty accounts are created by Department HODs. If you forgot your password, click <Link href="/forgot-password" className="font-bold text-blue-950 underline">Forgot Password?</Link> to reset or generate a new secure password.
               </p>
             </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-blue-900 animate-spin" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

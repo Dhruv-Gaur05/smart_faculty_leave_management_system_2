@@ -60,6 +60,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | Error | null; role: UserRole | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<{ error: Error | null; success: boolean }>;
+  updateUserPassword: (newPassword: string) => Promise<{ error: Error | null; success: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -360,6 +362,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Send password recovery email via Supabase
+  const resetPasswordForEmail = async (emailToReset: string): Promise<{ error: Error | null; success: boolean }> => {
+    const trimmed = emailToReset.trim().toLowerCase();
+    if (!trimmed) {
+      return { error: new Error('Please enter your registered institutional email address.'), success: false };
+    }
+
+    if (isLiveSupabase) {
+      try {
+        const redirectTo = typeof window !== 'undefined'
+          ? `${window.location.origin}/reset-password`
+          : undefined;
+
+        const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+          redirectTo,
+        });
+
+        if (error) {
+          return { error: new Error(error.message), success: false };
+        }
+        return { error: null, success: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to send password reset request';
+        return { error: new Error(msg), success: false };
+      }
+    }
+
+    // Demo mode simulation
+    await new Promise((r) => setTimeout(r, 500));
+    return { error: null, success: true };
+  };
+
+  // Update authenticated user password
+  const updateUserPassword = async (newPassword: string): Promise<{ error: Error | null; success: boolean }> => {
+    if (!newPassword || newPassword.length < 6) {
+      return { error: new Error('Password must be at least 6 characters long.'), success: false };
+    }
+
+    if (isLiveSupabase) {
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+        if (error) {
+          return { error: new Error(error.message), success: false };
+        }
+        return { error: null, success: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to update password';
+        return { error: new Error(msg), success: false };
+      }
+    }
+
+    // Demo mode simulation
+    await new Promise((r) => setTimeout(r, 400));
+    return { error: null, success: true };
+  };
+
   const role = profile?.role ?? null;
 
   return (
@@ -374,6 +435,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         refreshProfile,
+        resetPasswordForEmail,
+        updateUserPassword,
       }}
     >
       {children}

@@ -54,36 +54,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }
 
   return (
-    <aside className="w-full md:w-64 bg-slate-100 border-r border-slate-300 p-4 flex flex-col justify-between shrink-0">
+    <aside className="w-full md:w-64 bg-slate-50/80 rounded-2xl border border-slate-200 p-4 flex flex-col justify-between shrink-0 shadow-xs">
       <div className="space-y-6">
         {/* User Role Card Header */}
-        <div className="bg-white p-3 border border-slate-300 shadow-xs">
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            Institutional Portal
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div className="text-[10px] font-bold text-amber-700 uppercase tracking-widest flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Institutional Session
           </div>
-          <div className="text-sm font-bold text-slate-900 mt-1 capitalize flex items-center gap-1.5 font-serif">
+          <div className="text-sm font-bold text-slate-900 mt-1 capitalize flex items-center gap-2 font-serif">
             {role === 'faculty' && <FileText className="w-4 h-4 text-blue-900" />}
             {role === 'hod' && <UserCheck className="w-4 h-4 text-blue-900" />}
             {role === 'admin' && <Shield className="w-4 h-4 text-blue-900" />}
-            {role.toUpperCase()} PORTAL
+            <span>{role.toUpperCase()} PORTAL</span>
           </div>
-          <div className="text-xs text-slate-800 font-bold truncate mt-2">
+          <div className="text-xs text-slate-900 font-bold truncate mt-2">
             {userName}
           </div>
-          <div className="text-[11px] text-blue-900 font-medium truncate">
+          <div className="text-[11px] text-blue-900 font-semibold truncate">
             {designation}
           </div>
-          <div className="text-[10px] text-slate-500 truncate mt-0.5">
+          <div className="text-[10px] text-slate-600 truncate mt-0.5 font-medium">
             {department}
           </div>
         </div>
 
         {/* Navigation Section */}
         <div>
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-2 mb-2">
+          <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider px-2 mb-2.5">
             Portal Navigation
           </div>
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {roleItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/faculty/dashboard' && pathname.startsWith(item.href));
@@ -91,11 +92,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center space-x-2.5 px-3 py-2 text-xs font-semibold tracking-wide border transition-colors ${
-                    isActive
-                      ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
-                      : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 hover:border-slate-400'
-                  }`}
+                  className={`flex items-center space-x-2.5 px-3 py-2.5 text-xs font-semibold tracking-wide rounded-lg border transition-all ${isActive
+                      ? 'bg-blue-900 text-white border-blue-950 shadow-xs'
+                      : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                    }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.name}</span>
@@ -107,10 +107,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Institutional Notice */}
-      <div className="mt-8 pt-4 border-t border-slate-300 text-[11px] text-slate-600 space-y-1">
-        <p className="font-semibold text-slate-800">Academic Support</p>
-        <p className="text-[10px]">Registry: <span className="font-mono">leave@university.edu</span></p>
-        <p className="text-[10px]">Intercom: <span className="font-mono">Ext. 4021</span></p>
+      <div className="mt-8 pt-4 border-t border-slate-200 text-[11px] text-slate-600 space-y-1 bg-white/60 p-3 rounded-lg border border-slate-200/60">
+        <p className="font-bold text-slate-800 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          Academic Helpdesk
+        </p>
+        <p className="text-[10px] text-slate-600">Email: <span className="font-mono text-slate-800 font-medium">leave@university.edu</span></p>
+        <p className="text-[10px] text-slate-600">Intercom: <span className="font-mono text-slate-800 font-medium">Ext. 4021</span></p>
       </div>
     </aside>
   );

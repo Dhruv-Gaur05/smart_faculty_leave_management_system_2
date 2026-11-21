@@ -47,16 +47,22 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-slate-900 text-white border-b-4 border-blue-800 shadow-md">
+    <header className="bg-slate-950 text-white border-b-2 border-amber-500 shadow-lg">
       {/* Top Academic Strip */}
-      <div className="bg-slate-950 text-slate-300 text-xs py-1 px-4 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="font-mono tracking-wider">OFFICIAL UNIVERSITY MANAGEMENT SYSTEM PORTAL</div>
-          <div className="hidden sm:flex items-center space-x-3 text-slate-400">
-            <span>Academic Session 2026 - 2027</span>
+      <div className="bg-slate-900/90 text-slate-300 text-xs py-1.5 px-4 sm:px-6 border-b border-slate-800">
+        <div className="max-w-7xl mx-auto flex justify-between items-center text-[11px]">
+          <div className="flex items-center gap-2 font-medium tracking-wider text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span className="uppercase font-semibold">Central University Academic Governance Portal</span>
+          </div>
+          <div className="hidden sm:flex items-center space-x-4 text-slate-400">
+            <span className="bg-slate-800/80 px-2 py-0.5 rounded text-slate-300 border border-slate-700/50">
+              Academic Session 2026 – 2027
+            </span>
             {user && (
-              <span className="text-emerald-400 font-mono font-semibold flex items-center gap-1">
-                ● Live Session: {profile?.name || user.email} ({role?.toUpperCase() || 'USER'})
+              <span className="text-emerald-400 font-mono font-medium flex items-center gap-1.5 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                {profile?.name || user.email} ({role?.toUpperCase() || 'STAFF'})
               </span>
             )}
           </div>
@@ -64,18 +70,18 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Main Header Banner */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+        <Link href="/" className="flex items-center space-x-3 group">
           {/* University Crest */}
-          <div className="w-11 h-11 bg-blue-900 border-2 border-slate-300 flex items-center justify-center text-white shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-700 via-blue-900 to-indigo-950 border border-amber-400/40 shadow-sm flex items-center justify-center text-amber-300 group-hover:scale-105 transition-transform shrink-0">
             <GraduationCap className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold tracking-tight text-white uppercase font-serif">
-              UNIVERSITY LEAVE MANAGEMENT
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-white uppercase font-serif flex items-center gap-2">
+              <span>National University Portal</span>
             </h1>
-            <p className="text-[11px] sm:text-xs text-blue-200 font-medium tracking-wide">
-              Centralized Academic Staff Portal
+            <p className="text-[11px] sm:text-xs text-blue-200/90 font-medium tracking-wide">
+              Faculty Leave Management &amp; Approval System
             </p>
           </div>
         </Link>
@@ -90,11 +96,10 @@ export const Header: React.FC = () => {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors border ${
-                    isActive
-                      ? 'bg-blue-900 text-white border-blue-700'
-                      : 'text-slate-200 border-transparent hover:bg-slate-800 hover:text-white'
-                  }`}
+                  className={`flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${isActive
+                      ? 'bg-blue-800/90 text-white shadow-xs border border-blue-600/60'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{link.name}</span>
@@ -105,20 +110,20 @@ export const Header: React.FC = () => {
 
           {/* User Auth Action in Header */}
           {user ? (
-            <div className="flex items-center space-x-2 pl-2 border-l border-slate-700">
+            <div className="flex items-center space-x-2 pl-3 border-l border-slate-800">
               <Link
                 href={getDashboardPath()}
-                className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-medium text-white"
+                className="flex items-center space-x-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-lg text-xs font-medium text-white transition-colors"
               >
-                <User className="w-3.5 h-3.5 text-blue-300" />
-                <span className="max-w-[120px] truncate">{profile?.name || user.email}</span>
-                <span className="text-[10px] uppercase font-bold bg-blue-900 px-1.5 py-0.2 border border-blue-700 text-blue-100 ml-1">
+                <User className="w-3.5 h-3.5 text-blue-400" />
+                <span className="max-w-[130px] truncate font-medium">{profile?.name || user.email}</span>
+                <span className="text-[10px] uppercase font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 px-1.5 py-0.5 rounded ml-1 font-mono">
                   {role || 'Staff'}
                 </span>
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-1 px-2.5 py-1.5 bg-rose-900 hover:bg-rose-950 text-white text-xs font-medium border border-rose-800 transition-colors"
+                className="flex items-center space-x-1 px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900 text-rose-200 hover:text-white text-xs font-medium border border-rose-800/60 rounded-lg transition-colors cursor-pointer"
                 title="Sign out of portal"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -128,10 +133,10 @@ export const Header: React.FC = () => {
           ) : (
             <Link
               href="/login"
-              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold uppercase tracking-wider border border-blue-600 shadow-sm transition-colors"
+              className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-sm border border-blue-500/40 transition-all"
             >
               <LogIn className="w-4 h-4" />
-              <span>Sign In</span>
+              <span>Portal Login</span>
             </Link>
           )}
         </div>
@@ -159,11 +164,10 @@ export const Header: React.FC = () => {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center space-x-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider ${
-                  isActive
+                className={`flex items-center space-x-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isActive
                     ? 'bg-blue-900 text-white'
                     : 'text-slate-300 hover:bg-slate-800'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{link.name}</span>

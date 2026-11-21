@@ -137,15 +137,15 @@ export default function FacultyApplicationsPage() {
 
         <div className="flex-1 space-y-6">
           {/* Header Banner */}
-          <div className="bg-blue-900 text-white p-5 border-l-8 border-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-slate-900 text-white p-6 rounded-2xl border-l-8 border-amber-500 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200 bg-white/10 px-2 py-0.5 border border-blue-400/30 inline-block mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-400/30 inline-block mb-1.5 font-mono">
                 Official Leave Records
               </span>
-              <h1 className="text-xl font-bold uppercase font-serif tracking-wide">
+              <h1 className="text-xl sm:text-2xl font-bold uppercase font-serif tracking-wide text-white">
                 My Leave Applications
               </h1>
-              <p className="text-xs text-blue-100 mt-0.5">
+              <p className="text-xs text-blue-200/90 mt-0.5 font-medium">
                 Complete historical record of submitted leave applications and departmental review audit trail
               </p>
             </div>
@@ -154,7 +154,7 @@ export default function FacultyApplicationsPage() {
                 <Button
                   variant="primary"
                   size="sm"
-                  className="bg-emerald-700 hover:bg-emerald-800 border-emerald-600 font-bold uppercase tracking-wider text-xs px-4 py-2"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg shadow-sm"
                 >
                   <PlusSquare className="w-4 h-4 mr-1.5" /> Apply for Leave
                 </Button>
@@ -166,70 +166,70 @@ export default function FacultyApplicationsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`p-3 text-left border transition-all ${
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
                 statusFilter === 'all'
                   ? 'bg-blue-900 text-white border-blue-900 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50'
+                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="text-[10px] uppercase font-bold tracking-wider block opacity-80">
+              <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'all' ? 'text-blue-100' : 'text-slate-600'}`}>
                 All Applications
               </span>
-              <span className="text-2xl font-bold mt-0.5 block">{loading ? '—' : totalCount}</span>
+              <span className="text-2xl font-bold mt-1 block">{loading ? '—' : totalCount}</span>
             </button>
 
             <button
               onClick={() => setStatusFilter('pending')}
-              className={`p-3 text-left border transition-all ${
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
                 statusFilter === 'pending'
                   ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50'
+                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="text-[10px] uppercase font-bold tracking-wider block text-amber-700">
+              <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'pending' ? 'text-amber-100' : 'text-amber-800 font-bold'}`}>
                 Pending HOD
               </span>
-              <span className="text-2xl font-bold mt-0.5 block">{loading ? '—' : pendingCount}</span>
+              <span className="text-2xl font-bold mt-1 block">{loading ? '—' : pendingCount}</span>
             </button>
 
             <button
               onClick={() => setStatusFilter('approved')}
-              className={`p-3 text-left border transition-all ${
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
                 statusFilter === 'approved'
                   ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50'
+                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="text-[10px] uppercase font-bold tracking-wider block text-emerald-700">
+              <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'approved' ? 'text-emerald-100' : 'text-emerald-800 font-bold'}`}>
                 Approved
               </span>
-              <span className="text-2xl font-bold mt-0.5 block">{loading ? '—' : approvedCount}</span>
+              <span className="text-2xl font-bold mt-1 block">{loading ? '—' : approvedCount}</span>
             </button>
 
             <button
               onClick={() => setStatusFilter('rejected')}
-              className={`p-3 text-left border transition-all ${
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
                 statusFilter === 'rejected'
                   ? 'bg-rose-700 text-white border-rose-700 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50'
+                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="text-[10px] uppercase font-bold tracking-wider block text-rose-700">
+              <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'rejected' ? 'text-rose-100' : 'text-rose-800 font-bold'}`}>
                 Rejected
               </span>
-              <span className="text-2xl font-bold mt-0.5 block">{loading ? '—' : rejectedCount}</span>
+              <span className="text-2xl font-bold mt-1 block">{loading ? '—' : rejectedCount}</span>
             </button>
           </div>
 
           {/* Search & Actions Bar */}
-          <div className="bg-white border border-slate-300 p-4 flex flex-col sm:flex-row gap-3 items-center justify-between shadow-xs">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row gap-3 items-center justify-between shadow-xs">
             <div className="relative w-full sm:w-80">
               <input
                 type="text"
                 placeholder="Search by ID, reason, or category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 rounded-none bg-white"
+                className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 placeholder:text-slate-500 font-medium shadow-2xs"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             </div>
@@ -304,52 +304,52 @@ export default function FacultyApplicationsPage() {
               </div>
             ) : (
               /* Full Applications Table */
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs bg-white">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 border-b border-slate-300 text-slate-700 uppercase tracking-wider font-semibold">
-                      <th className="py-2.5 px-3">Application ID</th>
-                      <th className="py-2.5 px-3">Leave Category</th>
-                      <th className="py-2.5 px-3">Leave Span</th>
-                      <th className="py-2.5 px-3">Duration</th>
-                      <th className="py-2.5 px-3">Reason / Justification</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Submitted On</th>
-                      <th className="py-2.5 px-3 text-right">Action</th>
+                    <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-800 uppercase tracking-wider font-bold text-[10px]">
+                      <th className="py-3 px-3.5">Application ID</th>
+                      <th className="py-3 px-3.5">Leave Category</th>
+                      <th className="py-3 px-3.5">Leave Span</th>
+                      <th className="py-3 px-3.5">Duration</th>
+                      <th className="py-3 px-3.5">Reason / Justification</th>
+                      <th className="py-3 px-3.5">Status</th>
+                      <th className="py-3 px-3.5">Submitted On</th>
+                      <th className="py-3 px-3.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-150">
                     {filteredApplications.map((app) => (
-                      <tr key={app.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-blue-900">
+                      <tr key={app.id} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="py-3 px-3.5 font-mono font-bold text-blue-900">
                           <Link href={`/faculty/applications/${app.id}`} className="hover:underline">
                             {app.id}
                           </Link>
                         </td>
-                        <td className="py-3 px-3 font-semibold text-slate-900">
+                        <td className="py-3 px-3.5 font-semibold text-slate-900">
                           {app.leave_type?.name || 'Casual Leave'}
                         </td>
-                        <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
-                          {app.from_date} <span className="text-slate-400">→</span> {app.to_date}
+                        <td className="py-3 px-3.5 text-slate-700 font-mono text-[11px] font-medium">
+                          {app.from_date} <span className="text-slate-400 font-normal">→</span> {app.to_date}
                         </td>
-                        <td className="py-3 px-3 font-bold text-slate-900">
+                        <td className="py-3 px-3.5 font-bold text-slate-950">
                           {app.days} {app.days === 1 ? 'Day' : 'Days'}
                         </td>
-                        <td className="py-3 px-3 text-slate-600 max-w-xs truncate text-[11px]" title={app.reason}>
+                        <td className="py-3 px-3.5 text-slate-700 max-w-xs truncate text-[11px] font-medium" title={app.reason}>
                           {app.reason}
                         </td>
-                        <td className="py-3 px-3">
+                        <td className="py-3 px-3.5">
                           <Badge status={app.status} />
                         </td>
-                        <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">
+                        <td className="py-3 px-3.5 text-slate-600 font-mono text-[11px]">
                           {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
                         </td>
-                        <td className="py-3 px-3 text-right">
+                        <td className="py-3 px-3.5 text-right">
                           <Link
                             href={`/faculty/applications/${app.id}`}
                             className="text-blue-900 hover:text-blue-950 font-bold hover:underline inline-flex items-center text-xs"
                           >
-                            View Record <ArrowRight className="w-3 h-3 ml-0.5" />
+                            View Record <ArrowRight className="w-3.5 h-3.5 ml-1" />
                           </Link>
                         </td>
                       </tr>

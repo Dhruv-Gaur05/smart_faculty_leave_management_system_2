@@ -5,8 +5,8 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "Faculty Leave Management System | YOUR UNIVERSITY NAME",
-  description: "Official University Portal for Faculty Leave Application, HOD Approval, and Administration",
+  title: "Faculty Leave Management System | University Academic Portal",
+  description: "Official University Academic Portal for Faculty Leave Application, HOD Recommendations, and Administration",
 };
 
 export default function RootLayout({
@@ -15,11 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-slate-100 text-slate-900 font-sans">
-      <body className="min-h-full flex flex-col antialiased">
+    <html lang="en" className="h-full bg-slate-50 text-slate-900 antialiased">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
         <AuthProvider>
           <Header />
-          <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {children}
           </main>
           <Footer />
