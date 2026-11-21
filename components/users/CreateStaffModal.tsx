@@ -30,6 +30,7 @@ interface CreateStaffModalProps {
   departments: DepartmentOption[];
   lockedDepartment?: DepartmentOption | null;
   defaultRole?: 'hod' | 'faculty';
+  defaultDepartmentId?: string;
 }
 
 const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
@@ -40,14 +41,13 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
   departments,
   lockedDepartment,
   defaultRole = 'faculty',
+  defaultDepartmentId,
 }) => {
   const initialRole = mode === 'hod' ? 'faculty' : defaultRole;
   const initialDepartmentId =
     mode === 'hod' && lockedDepartment
       ? lockedDepartment.id
-      : departments.length > 0
-        ? departments[0].id
-        : '';
+      : defaultDepartmentId || (departments.length > 0 ? departments[0].id : '');
 
   const [role, setRole] = useState<'hod' | 'faculty'>(initialRole);
   const [departmentId, setDepartmentId] = useState<string>(initialDepartmentId);
@@ -337,20 +337,30 @@ export const CreateStaffModal: React.FC<CreateStaffModalProps> = ({
   departments,
   lockedDepartment,
   defaultRole = 'faculty',
+  defaultDepartmentId,
 }) => {
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === 'hod' ? 'Onboard Department Faculty Member' : 'Create University Staff Account'}
+      title={
+        mode === 'hod'
+          ? 'Onboard Department Faculty Member'
+          : defaultRole === 'hod'
+            ? 'Appoint / Onboard Department HOD'
+            : 'Create University Staff Account'
+      }
       subtitle={
         mode === 'hod'
           ? 'Add a new faculty member strictly under your academic department'
-          : 'Provision HOD or Faculty credentials with automatic department assignment'
+          : defaultRole === 'hod'
+            ? 'Provision new HOD credentials with automatic department allocation'
+            : 'Provision HOD or Faculty credentials with automatic department assignment'
       }
     >
       {isOpen && (
         <CreateStaffForm
+          key={`${defaultDepartmentId || ''}-${defaultRole}`}
           onClose={onClose}
           onSuccess={onSuccess}
           accessToken={accessToken}
@@ -358,6 +368,7 @@ export const CreateStaffModal: React.FC<CreateStaffModalProps> = ({
           departments={departments}
           lockedDepartment={lockedDepartment}
           defaultRole={defaultRole}
+          defaultDepartmentId={defaultDepartmentId}
         />
       )}
     </Modal>

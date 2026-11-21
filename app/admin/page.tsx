@@ -36,6 +36,7 @@ import {
   getAdminSystemStats,
   getAllStaffMembers,
   createDepartment,
+  assignDepartmentHod,
   checkUserProvisioningStatus,
   AdminSystemStats,
   StaffMember
@@ -78,7 +79,15 @@ export default function AdminPortalPage() {
 
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [staffModalDefaultRole, setStaffModalDefaultRole] = useState<'hod' | 'faculty'>('hod');
+  const [staffModalDefaultDeptId, setStaffModalDefaultDeptId] = useState<string | undefined>(undefined);
   const [feedbackBanner, setFeedbackBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Appoint / Change HOD Modal State
+  const [isAppointHodModalOpen, setIsAppointHodModalOpen] = useState(false);
+  const [targetAppointDept, setTargetAppointDept] = useState<DepartmentSummary | null>(null);
+  const [selectedHodCandidateId, setSelectedHodCandidateId] = useState('');
+  const [appointingHod, setAppointingHod] = useState(false);
+  const [appointHodError, setAppointHodError] = useState<string | null>(null);
 
   // Admin Password Reset Modal State
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
@@ -99,20 +108,16 @@ export default function AdminPortalPage() {
     setTimeout(() => setFeedbackBanner(null), 6000);
   };
 
-  const fetchAdminPayload = async () => {
-    const [liveDepts, systemStats, allStaff, apiReady] = await Promise.all([
-      getAdminDepartments(),
-      getAdminSystemStats(),
-      getAllStaffMembers(),
-      checkUserProvisioningStatus(),
-    ]);
-    return { liveDepts, systemStats, allStaff, apiReady };
-  };
-
   const loadData = async () => {
     setLoading(true);
     try {
-      const { liveDepts, systemStats, allStaff, apiReady } = await fetchAdminPayload();
+      const activeToken = session?.access_token;
+      const [liveDepts, systemStats, allStaff, apiReady] = await Promise.all([
+        getAdminDepartments(activeToken),
+        getAdminSystemStats(),
+        getAllStaffMembers(),
+        checkUserProvisioningStatus(),
+      ]);
       setDepartments(liveDepts);
       setStats(systemStats);
       setStaffMembers(allStaff);
@@ -126,8 +131,14 @@ export default function AdminPortalPage() {
 
   useEffect(() => {
     let active = true;
-    fetchAdminPayload()
-      .then(({ liveDepts, systemStats, allStaff, apiReady }) => {
+    const activeToken = session?.access_token;
+    Promise.all([
+      getAdminDepartments(activeToken),
+      getAdminSystemStats(),
+      getAllStaffMembers(),
+      checkUserProvisioningStatus(),
+    ])
+      .then(([liveDepts, systemStats, allStaff, apiReady]) => {
         if (!active) return;
         setDepartments(liveDepts);
         setStats(systemStats);
@@ -143,7 +154,7 @@ export default function AdminPortalPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [session]);
 
   const handleCreateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,6 +238,49 @@ export default function AdminPortalPage() {
     } finally {
       setResetSubmitting(false);
     }
+  };
+
+  const handleOpenAppointModal = (dept: DepartmentSummary) => {
+    setTargetAppointDept(dept);
+    setAppointHodError(null);
+    const existingHod = staffMembers.find(
+      (m) => m.id === dept.hodId || (m.role === 'hod' && m.department_id === dept.id)
+    );
+    setSelectedHodCandidateId(existingHod?.id || '');
+    setIsAppointHodModalOpen(true);
+  };
+
+  const handleConfirmAssignHod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetAppointDept) return;
+    if (!selectedHodCandidateId) {
+      setAppointHodError('Please select a staff member to appoint as HOD, or choose to onboard a new HOD.');
+      return;
+    }
+
+    setAppointingHod(true);
+    setAppointHodError(null);
+
+    const res = await assignDepartmentHod(targetAppointDept.id, selectedHodCandidateId, session?.access_token);
+    setAppointingHod(false);
+
+    if (!res.success) {
+      setAppointHodError(res.error || 'Failed to appoint HOD.');
+      return;
+    }
+
+    setIsAppointHodModalOpen(false);
+    showFeedback('success', `Appointed Head of Department for "${targetAppointDept.name}" successfully.`);
+    loadData();
+  };
+
+  const handleSwitchToCreateHod = () => {
+    if (!targetAppointDept) return;
+    const deptId = targetAppointDept.id;
+    setIsAppointHodModalOpen(false);
+    setStaffModalDefaultRole('hod');
+    setStaffModalDefaultDeptId(deptId);
+    setIsAddStaffOpen(true);
   };
 
   const filteredDepts = useMemo(() => {
@@ -474,11 +528,21 @@ export default function AdminPortalPage() {
                             </td>
                             <td className="py-3 px-3.5">
                               {dept.hodName === 'To Be Assigned' ? (
-                                <span className="text-amber-800 font-bold bg-amber-50 px-2 py-0.5 border border-amber-200 rounded text-[10px]">
+                                <span className="text-amber-800 font-bold bg-amber-50 px-2.5 py-1 border border-amber-300 rounded text-[11px] inline-flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3 text-amber-700" />
                                   Unassigned
                                 </span>
                               ) : (
-                                <span className="text-slate-800 font-medium">{dept.hodName}</span>
+                                <div>
+                                  <span className="text-slate-900 font-bold text-xs block">
+                                    {dept.hodName}
+                                  </span>
+                                  {dept.hodEmail && (
+                                    <span className="text-[10px] text-slate-500 font-mono block">
+                                      {dept.hodEmail}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </td>
                             <td className="py-3 px-3.5 text-center font-bold text-slate-900">
@@ -495,16 +559,25 @@ export default function AdminPortalPage() {
                                 {dept.activeLeavesToday}
                               </span>
                             </td>
-                            <td className="py-3 px-3.5 text-right">
+                            <td className="py-3 px-3.5 text-right space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAppointModal(dept)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                                {dept.hodName === 'To Be Assigned' ? 'Appoint HOD' : 'Change HOD'}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setStaffModalDefaultRole('hod');
+                                  setStaffModalDefaultRole('faculty');
+                                  setStaffModalDefaultDeptId(dept.id);
                                   setIsAddStaffOpen(true);
                                 }}
-                                className="text-xs font-bold text-blue-900 hover:underline cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                               >
-                                {dept.hodName === 'To Be Assigned' ? '+ Appoint HOD' : 'Add Staff'}
+                                + Add Faculty
                               </button>
                             </td>
                           </tr>
@@ -738,6 +811,102 @@ export default function AdminPortalPage() {
         </form>
       </Modal>
 
+      {/* Appoint / Change Department HOD Modal */}
+      <Modal
+        isOpen={isAppointHodModalOpen}
+        onClose={() => setIsAppointHodModalOpen(false)}
+        title={`Appoint Head of Department — ${targetAppointDept?.name || 'Department'}`}
+        subtitle="Designate academic leadership for this department"
+      >
+        <div className="space-y-5">
+          {appointHodError && (
+            <div className="p-3 bg-rose-50 border border-rose-300 rounded-lg text-rose-950 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+              <span>{appointHodError}</span>
+            </div>
+          )}
+
+          {/* Option 1: Select an Existing Staff Member */}
+          <form onSubmit={handleConfirmAssignHod} className="space-y-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Option A: Appoint from Existing Staff Roster
+              </label>
+              <p className="text-[11px] text-slate-600">
+                Select an existing HOD or faculty member to appoint as Head of Department for{' '}
+                <strong>{targetAppointDept?.name}</strong>:
+              </p>
+
+              <select
+                value={selectedHodCandidateId}
+                onChange={(e) => setSelectedHodCandidateId(e.target.value)}
+                className="w-full py-2.5 px-3 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 font-medium shadow-2xs"
+              >
+                <option value="">-- Choose Existing Staff Member --</option>
+                {staffMembers
+                  .filter((m) => m.role !== 'admin')
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.role.toUpperCase()} — {m.department_name} — {m.email})
+                    </option>
+                  ))}
+              </select>
+
+              <div className="flex justify-end pt-1">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={appointingHod || !selectedHodCandidateId}
+                  className="bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-lg px-4"
+                >
+                  {appointingHod ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Appointing...
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-3.5 h-3.5 mr-1.5" /> Confirm HOD Appointment
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          {/* Divider */}
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-slate-300 w-full" />
+            <span className="bg-white px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              OR
+            </span>
+            <div className="border-t border-slate-300 w-full" />
+          </div>
+
+          {/* Option 2: Onboard a New HOD */}
+          <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div>
+              <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                Option B: Onboard a New HOD Account
+              </h4>
+              <p className="text-[11px] text-amber-900 mt-0.5">
+                Create new institutional login credentials pre-locked to{' '}
+                <strong>{targetAppointDept?.name}</strong>.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSwitchToCreateHod}
+              className="bg-white hover:bg-amber-100 text-amber-950 border-amber-400 font-bold text-xs shrink-0 rounded-lg shadow-2xs"
+            >
+              <UserPlus className="w-3.5 h-3.5 mr-1" /> Onboard New HOD
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Add HOD or Faculty Modal */}
       <CreateStaffModal
         isOpen={isAddStaffOpen}
@@ -749,6 +918,7 @@ export default function AdminPortalPage() {
         accessToken={session?.access_token}
         mode="admin"
         defaultRole={staffModalDefaultRole}
+        defaultDepartmentId={staffModalDefaultDeptId}
         departments={departments.map((d) => ({ id: d.id, name: d.name }))}
       />
 

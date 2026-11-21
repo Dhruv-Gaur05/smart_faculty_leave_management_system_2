@@ -66,7 +66,9 @@ export interface DepartmentSummary {
   id: string;
   name: string;
   code: string;
+  hodId?: string | null;
   hodName: string;
+  hodEmail?: string | null;
   totalFaculty: number;
   activeLeavesToday: number;
 }

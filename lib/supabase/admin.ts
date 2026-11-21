@@ -33,12 +33,34 @@ export interface CreateStaffAccountPayload {
 }
 
 /**
- * Fetch all university departments along with HOD name and faculty counts
+ * Fetch all university departments along with HOD name and faculty counts.
+ * Prioritizes privileged server API route when accessToken is provided to bypass RLS.
  */
-export async function getAdminDepartments(): Promise<DepartmentSummary[]> {
+export async function getAdminDepartments(accessToken?: string): Promise<DepartmentSummary[]> {
   const isLive = isSupabaseConfigured();
   if (!isLive) return [];
 
+  // 1. Try privileged server API route if accessToken is available
+  if (accessToken) {
+    try {
+      const res = await fetch('/api/admin/departments', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.departments && Array.isArray(data.departments)) {
+          return data.departments as DepartmentSummary[];
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Could not fetch departments via server API, using direct query fallback:', apiErr);
+    }
+  }
+
+  // 2. Direct database query fallback
   try {
     const { data: depts, error } = await supabase
       .from('departments')
@@ -47,6 +69,7 @@ export async function getAdminDepartments(): Promise<DepartmentSummary[]> {
         department_name,
         hod_id,
         profiles:hod_id (
+          id,
           name,
           designation,
           email
@@ -58,6 +81,12 @@ export async function getAdminDepartments(): Promise<DepartmentSummary[]> {
       console.error('Error fetching admin departments:', error);
       return [];
     }
+
+    // Get all HOD profiles to resolve unjoined profiles
+    const { data: allHods } = await supabase
+      .from('profiles')
+      .select('id, name, email, designation, department_id, role')
+      .eq('role', 'hod');
 
     // Get faculty count per department
     const { data: facultyMembers } = await supabase
@@ -81,7 +110,29 @@ export async function getAdminDepartments(): Promise<DepartmentSummary[]> {
         return prof?.department_id === d.id;
       }).length;
 
-      const hodProfile = d.profiles as unknown as { name?: string } | null;
+      const joinedProfile = d.profiles as unknown as { id?: string; name?: string; email?: string } | null;
+      let effectiveHodId = d.hod_id;
+      let effectiveHodName = joinedProfile?.name;
+      let effectiveHodEmail = joinedProfile?.email;
+
+      // If joined profile wasn't found by hod_id, match from allHods
+      if (!effectiveHodName && d.hod_id && allHods) {
+        const matching = allHods.find((h) => h.id === d.hod_id);
+        if (matching) {
+          effectiveHodName = matching.name;
+          effectiveHodEmail = matching.email;
+        }
+      }
+
+      // If hod_id was null on departments, check if an HOD profile has department_id === d.id
+      if (!effectiveHodName && allHods) {
+        const matching = allHods.find((h) => h.department_id === d.id);
+        if (matching) {
+          effectiveHodId = matching.id;
+          effectiveHodName = matching.name;
+          effectiveHodEmail = matching.email;
+        }
+      }
 
       // Generate a short code from department name (e.g., Computer Science & Engineering -> CSE)
       const code =
@@ -95,7 +146,9 @@ export async function getAdminDepartments(): Promise<DepartmentSummary[]> {
         id: d.id,
         name: d.department_name,
         code,
-        hodName: hodProfile?.name || 'To Be Assigned',
+        hodId: effectiveHodId || null,
+        hodName: effectiveHodName || 'To Be Assigned',
+        hodEmail: effectiveHodEmail || null,
         totalFaculty: deptFaculty,
         activeLeavesToday: deptActiveLeaves,
       };
@@ -197,14 +250,43 @@ export async function createDepartment(
 }
 
 /**
- * Assign an existing HOD profile to a department via authenticated Admin RLS policy
+ * Assign an existing HOD profile to a department.
+ * Uses privileged server API route when accessToken is provided to ensure full consistency.
  */
 export async function assignDepartmentHod(
   departmentId: string,
-  hodProfileId: string
+  hodProfileId: string,
+  accessToken?: string
 ): Promise<{ success: boolean; error: string | null }> {
   if (!departmentId || !hodProfileId) {
     return { success: false, error: 'Both department and HOD selection are required.' };
+  }
+
+  if (accessToken) {
+    try {
+      const res = await fetch('/api/admin/departments/assign-hod', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          departmentId,
+          hodId: hodProfileId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to appoint HOD.' };
+      }
+      return { success: true, error: null };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Network error assigning HOD.',
+      };
+    }
   }
 
   try {
