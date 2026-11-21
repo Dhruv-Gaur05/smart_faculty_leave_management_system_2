@@ -42,6 +42,11 @@ export interface LeaveRequest {
   hodComment?: string;
   documentUrl?: string;
   clarificationResponse?: string;
+  approvalsHistory?: Array<{
+    action: string;
+    remarks?: string | null;
+    action_time?: string;
+  }>;
 }
 
 export interface LeaveCategoryBalance {

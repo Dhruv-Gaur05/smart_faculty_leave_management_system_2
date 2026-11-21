@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -11,8 +11,11 @@ import { Badge } from '@/components/ui/Badge';
 import {
   getFacultyApplications,
   getFacultyProfile,
+  getLeaveTypes,
+  computeFacultyLeaveBalances,
   DetailedLeaveApplication,
 } from '@/lib/supabase/faculty';
+import { LeaveTypeRow } from '@/types/database';
 import {
   PlusSquare,
   Clock,
@@ -35,15 +38,8 @@ export default function FacultyDashboardPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [facultyDept, setFacultyDept] = useState<string>('Computer Science & Engineering');
   const [applications, setApplications] = useState<DetailedLeaveApplication[]>([]);
+  const [leaveTypes, setLeaveTypes] = useState<LeaveTypeRow[]>([]);
   const [errorState, setErrorState] = useState<string | null>(null);
-
-  // Leave balance placeholder figures for 2026 Academic Session
-  const leaveBalanceQuotas = [
-    { type: 'Casual Leave (CL)', total: 12, used: 2, remaining: 10, border: 'border-t-blue-900' },
-    { type: 'Earned Leave (EL)', total: 15, used: 0, remaining: 15, border: 'border-t-emerald-800' },
-    { type: 'Medical Leave (ML)', total: 10, used: 1, remaining: 9, border: 'border-t-amber-700' },
-    { type: 'Duty Leave (DL)', total: 8, used: 3, remaining: 5, border: 'border-t-indigo-900' },
-  ];
 
   useEffect(() => {
     let isCancelled = false;
@@ -51,8 +47,12 @@ export default function FacultyDashboardPage() {
 
     (async () => {
       try {
-        // 1. Fetch faculty profile with department if possible
-        const fullProfile = await getFacultyProfile(user.id);
+        // Fetch faculty profile, personal applications, and official leave types in parallel
+        const [fullProfile, apps, types] = await Promise.all([
+          getFacultyProfile(user.id),
+          getFacultyApplications(user.id),
+          getLeaveTypes(),
+        ]);
         if (isCancelled) return;
         if (fullProfile?.department_name) {
           setFacultyDept(fullProfile.department_name);
@@ -60,10 +60,8 @@ export default function FacultyDashboardPage() {
           setFacultyDept('Department of Computer Science & Engineering');
         }
 
-        // 2. Fetch only this faculty's real leave applications from Supabase
-        const apps = await getFacultyApplications(user.id);
-        if (isCancelled) return;
         setApplications(apps);
+        setLeaveTypes(types);
       } catch (err) {
         if (!isCancelled) {
           console.error('Failed to load faculty dashboard data:', err);
@@ -80,6 +78,12 @@ export default function FacultyDashboardPage() {
       isCancelled = true;
     };
   }, [user, profile]);
+
+  // Dynamically compute real-time leave balances based on actual applications
+  // For any new faculty account with 0 applications, used is 0 and full quota is available
+  const leaveBalances = useMemo(() => {
+    return computeFacultyLeaveBalances(leaveTypes, applications);
+  }, [leaveTypes, applications]);
 
   // Derived counts
   const pendingCount = applications.filter(
@@ -255,7 +259,7 @@ export default function FacultyDashboardPage() {
             </div>
           </div>
 
-          {/* Leave Balance Placeholder Cards */}
+          {/* Dynamic Faculty Leave Balance Cards */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -265,15 +269,29 @@ export default function FacultyDashboardPage() {
               <span className="text-xs font-semibold text-slate-600">Official Quotas</span>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {leaveBalanceQuotas.map((b) => (
-                <div key={b.type} className={`bg-white rounded-xl p-4.5 border border-slate-200 border-t-4 ${b.border} shadow-xs`}>
-                  <div className="text-xs font-bold text-slate-800 truncate">{b.type}</div>
-                  <div className="text-2xl font-bold text-slate-950 mt-1">
-                    {b.remaining}
-                    <span className="text-xs font-semibold text-slate-500 ml-1">/ {b.total} Days</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+              {leaveBalances.map((b) => (
+                <div key={b.type} className={`bg-white rounded-xl p-4 border border-slate-200 border-t-4 ${b.border} shadow-xs flex flex-col justify-between`}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                        {b.shortCode}
+                      </span>
+                      {b.pending > 0 && (
+                        <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                          {b.pending}d pending
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 mt-1 truncate" title={b.type}>
+                      {b.type}
+                    </div>
+                    <div className="text-2xl font-bold text-slate-950 mt-1.5">
+                      {b.remaining}
+                      <span className="text-xs font-semibold text-slate-500 ml-1">/ {b.total} Days</span>
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-600 mt-2 flex justify-between font-medium">
+                  <div className="text-xs text-slate-600 mt-3 pt-2 border-t border-slate-100 flex justify-between font-medium">
                     <span>Used: {b.used} d</span>
                     <span className="font-bold text-emerald-800">Avail: {b.remaining} d</span>
                   </div>

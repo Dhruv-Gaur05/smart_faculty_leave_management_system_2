@@ -57,6 +57,74 @@ const DEFAULT_LEAVE_TYPES: LeaveTypeRow[] = [
 
 const LOCAL_STORAGE_PREFIX = 'university_faculty_applications_';
 
+export interface FacultyLeaveBalanceItem {
+  id?: string;
+  type: string;
+  shortCode: string;
+  total: number;
+  used: number;
+  pending: number;
+  remaining: number;
+  border: string;
+}
+
+export const ANNUAL_LEAVE_QUOTAS: Record<string, { total: number; border: string; shortCode: string }> = {
+  'Casual Leave (CL)': { total: 12, border: 'border-t-blue-900', shortCode: 'CL' },
+  'Earned Leave (EL)': { total: 15, border: 'border-t-emerald-800', shortCode: 'EL' },
+  'Medical Leave (ML)': { total: 10, border: 'border-t-amber-700', shortCode: 'ML' },
+  'Duty Leave (DL)': { total: 10, border: 'border-t-indigo-900', shortCode: 'DL' },
+  'Special Casual Leave (SCL)': { total: 10, border: 'border-t-purple-800', shortCode: 'SCL' },
+};
+
+/**
+ * Dynamically compute official annual leave balances for a faculty member.
+ * For any newly created faculty account with 0 applications, used days are strictly 0
+ * and all entitlement days are 100% available without any unwarranted reductions.
+ */
+export function computeFacultyLeaveBalances(
+  leaveTypes: LeaveTypeRow[],
+  applications: DetailedLeaveApplication[]
+): FacultyLeaveBalanceItem[] {
+  const typesToUse = leaveTypes && leaveTypes.length > 0 ? leaveTypes : DEFAULT_LEAVE_TYPES;
+
+  return typesToUse.map((lt) => {
+    const quotaInfo = ANNUAL_LEAVE_QUOTAS[lt.name] || {
+      total: 12,
+      border: 'border-t-blue-900',
+      shortCode: lt.name.replace(/[^A-Z]/g, '').slice(0, 3) || 'LV',
+    };
+
+    // Only approved leaves count as consumed
+    const usedDays = (applications || [])
+      .filter((app) => {
+        if (app.status !== 'approved') return false;
+        return app.leave_type_id === lt.id || app.leave_type?.name === lt.name;
+      })
+      .reduce((sum, app) => sum + Number(app.days || 0), 0);
+
+    // Leaves currently in review
+    const pendingDays = (applications || [])
+      .filter((app) => {
+        if (app.status !== 'pending' && app.status !== 'clarification') return false;
+        return app.leave_type_id === lt.id || app.leave_type?.name === lt.name;
+      })
+      .reduce((sum, app) => sum + Number(app.days || 0), 0);
+
+    const remaining = Math.max(0, quotaInfo.total - usedDays);
+
+    return {
+      id: lt.id,
+      type: lt.name,
+      shortCode: quotaInfo.shortCode,
+      total: quotaInfo.total,
+      used: usedDays,
+      pending: pendingDays,
+      remaining,
+      border: quotaInfo.border,
+    };
+  });
+}
+
 /**
  * Fetch faculty profile along with department name from Supabase.
  */
@@ -328,4 +396,45 @@ export async function submitLeaveApplication(params: {
       error: err instanceof Error ? err : new Error('Demo submission failed.'),
     };
   }
+}
+
+/**
+ * Respond to an HOD clarification request by sending a message and returning
+ * the leave application back to 'pending' review status.
+ */
+export async function respondToClarification(
+  applicationId: string,
+  message: string,
+  accessToken?: string
+): Promise<{ success: boolean; error: string | null }> {
+  const isLive = isSupabaseConfigured();
+
+  if (isLive && accessToken) {
+    try {
+      const res = await fetch('/api/faculty/clarification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          applicationId,
+          message,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to submit clarification response.' };
+      }
+
+      return { success: true, error: null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error submitting clarification.';
+      return { success: false, error: msg };
+    }
+  }
+
+  // Demo fallback
+  return { success: true, error: null };
 }

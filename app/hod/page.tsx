@@ -20,7 +20,8 @@ import {
   UserPlus,
   AlertCircle,
   KeyRound,
-  FileText
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -454,18 +455,95 @@ export default function HodPortalPage() {
                         </div>
                       </div>
 
-                      {item.hodComment && (
+                      {/* Clarification & Approvals Dialogue Thread */}
+                      {item.approvalsHistory && item.approvalsHistory.length > 0 ? (
+                        <div className="space-y-2 bg-white rounded-xl p-3 border border-slate-200">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                            Review & Clarification Dialogue
+                          </span>
+                          <div className="space-y-2">
+                            {item.approvalsHistory.map((appr, idx) => {
+                              const isFacultyClarification = appr.remarks?.startsWith('[Applicant Clarification');
+                              if (isFacultyClarification) {
+                                const cleanMsg = appr.remarks?.replace(/^\[Applicant Clarification[^\]]*\]:\s*/, '') || appr.remarks;
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="p-2.5 rounded-lg bg-blue-50/90 border border-blue-200 text-xs text-blue-950 flex flex-col gap-1"
+                                  >
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-blue-900">
+                                      <span className="flex items-center gap-1">
+                                        <MessageSquare className="w-3.5 h-3.5 text-blue-700" />
+                                        Applicant Clarification Response:
+                                      </span>
+                                      {appr.action_time && (
+                                        <span className="text-[10px] text-blue-700 font-mono font-normal">
+                                          {new Date(appr.action_time).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-slate-900 font-medium pl-4">{cleanMsg}</p>
+                                  </div>
+                                );
+                              } else if (appr.action === 'clarification') {
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="p-2.5 rounded-lg bg-amber-50/90 border border-amber-200 text-xs text-amber-950 flex flex-col gap-1"
+                                  >
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
+                                      <span className="flex items-center gap-1">
+                                        <HelpCircle className="w-3.5 h-3.5 text-amber-700" />
+                                        HOD Clarification Request:
+                                      </span>
+                                      {appr.action_time && (
+                                        <span className="text-[10px] text-amber-700 font-mono font-normal">
+                                          {new Date(appr.action_time).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-slate-900 font-medium pl-4">{appr.remarks || 'Clarification requested'}</p>
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 flex flex-col gap-1"
+                                  >
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                                      <span>
+                                        HOD Decision: {appr.action.toUpperCase()}
+                                      </span>
+                                      {appr.action_time && (
+                                        <span className="text-[10px] text-slate-500 font-mono font-normal">
+                                          {new Date(appr.action_time).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {appr.remarks && <p className="text-slate-800 font-medium pl-4">{appr.remarks}</p>}
+                                  </div>
+                                );
+                              }
+                            })}
+                          </div>
+                        </div>
+                      ) : item.hodComment ? (
                         <div className="text-xs bg-white rounded-lg p-3 border border-slate-200 text-slate-800">
                           <span className="font-bold text-slate-900">HOD Remark:</span> {item.hodComment}
                         </div>
-                      )}
+                      ) : null}
 
                       {/* Decision Action Bar */}
-                      {item.status === 'Pending HOD' && (
+                      {(item.status === 'Pending HOD' || item.status === 'Clarification Requested') && (
                         <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <input
                             type="text"
-                            placeholder="Add HOD review comments or substitution remarks..."
+                            placeholder={
+                              item.status === 'Clarification Requested'
+                                ? 'Override clarification / add decision remarks...'
+                                : 'Add HOD review comments or substitution remarks...'
+                            }
                             value={selectedItem?.id === item.id ? commentInput : ''}
                             onChange={(e) => {
                               setSelectedItem(item);

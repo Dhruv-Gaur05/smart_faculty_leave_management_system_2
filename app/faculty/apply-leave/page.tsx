@@ -12,6 +12,9 @@ import {
   getLeaveTypes,
   submitLeaveApplication,
   getFacultyProfile,
+  getFacultyApplications,
+  computeFacultyLeaveBalances,
+  DetailedLeaveApplication,
 } from '@/lib/supabase/faculty';
 import { LeaveTypeRow } from '@/types/database';
 import {
@@ -32,6 +35,7 @@ export default function ApplyLeavePage() {
   const { user, profile } = useAuth();
 
   const [leaveTypes, setLeaveTypes] = useState<LeaveTypeRow[]>([]);
+  const [applications, setApplications] = useState<DetailedLeaveApplication[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);
   const [departmentName, setDepartmentName] = useState('Computer Science & Engineering');
 
@@ -48,25 +52,27 @@ export default function ApplyLeavePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Load Leave Types from Supabase on mount
+  // Load Leave Types & existing applications from Supabase on mount
   useEffect(() => {
     let isMounted = true;
 
     async function loadInitialData() {
       try {
-        const types = await getLeaveTypes();
+        const [types, prof, apps] = await Promise.all([
+          getLeaveTypes(),
+          user ? getFacultyProfile(user.id) : Promise.resolve(null),
+          user ? getFacultyApplications(user.id) : Promise.resolve([]),
+        ]);
+
         if (isMounted) {
           setLeaveTypes(types);
           if (types.length > 0) {
             setSelectedTypeId(types[0].id);
           }
-        }
-
-        if (user) {
-          const prof = await getFacultyProfile(user.id);
-          if (isMounted && prof?.department_name) {
+          if (prof?.department_name) {
             setDepartmentName(prof.department_name);
           }
+          setApplications(apps);
         }
       } catch (err) {
         console.error('Error loading leave form options:', err);
@@ -99,6 +105,15 @@ export default function ApplyLeavePage() {
   const currentLeaveType = useMemo(() => {
     return leaveTypes.find((t) => t.id === selectedTypeId) || null;
   }, [leaveTypes, selectedTypeId]);
+
+  // Dynamically compute real-time leave balances
+  const leaveBalances = useMemo(() => {
+    return computeFacultyLeaveBalances(leaveTypes, applications);
+  }, [leaveTypes, applications]);
+
+  const activeCategoryBalance = useMemo(() => {
+    return leaveBalances.find((b) => b.id === selectedTypeId || b.type === currentLeaveType?.name);
+  }, [leaveBalances, selectedTypeId, currentLeaveType]);
 
   // Form Validation & Submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -310,6 +325,18 @@ export default function ApplyLeavePage() {
                       {currentLeaveType.description}
                     </p>
                   )}
+                  {activeCategoryBalance && (
+                    <div className="mt-2 p-2 bg-slate-100/90 rounded-lg border border-slate-200 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-700 font-medium">
+                        Session Quota: <strong className="text-slate-950 font-bold">{activeCategoryBalance.remaining}</strong> / {activeCategoryBalance.total} Days Available
+                      </span>
+                      <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                        activeCategoryBalance.remaining > 0 ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
+                      }`}>
+                        {activeCategoryBalance.used > 0 ? `${activeCategoryBalance.used}d consumed` : '100% available'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. From Date */}
@@ -366,6 +393,19 @@ export default function ApplyLeavePage() {
                   </div>
                   <div className="font-mono font-bold text-xs sm:text-sm bg-blue-900 text-white px-3.5 py-1.5 rounded-lg shadow-2xs">
                     {calculatedDays} {calculatedDays === 1 ? 'Calendar Day' : 'Calendar Days'}
+                  </div>
+                </div>
+              )}
+
+              {/* Quota Exceeded Notice */}
+              {fromDate && toDate && activeCategoryBalance && calculatedDays > activeCategoryBalance.remaining && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-start gap-2.5 shadow-2xs">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-amber-900 block">Quota Exceeded Notice</span>
+                    <span className="text-[11px] text-amber-800">
+                      The requested duration ({calculatedDays} days) exceeds your available balance ({activeCategoryBalance.remaining} of {activeCategoryBalance.total} days) for <strong>{activeCategoryBalance.type}</strong>. Your HOD may require additional justification.
+                    </span>
                   </div>
                 </div>
               )}

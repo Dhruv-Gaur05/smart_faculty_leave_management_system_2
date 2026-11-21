@@ -20,7 +20,9 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  MessageSquare,
+  HelpCircle
 } from 'lucide-react';
 
 export default function FacultyApplicationsPage() {
@@ -94,6 +96,7 @@ export default function FacultyApplicationsPage() {
   // Derived counts
   const totalCount = applications.length;
   const pendingCount = applications.filter((a) => a.status === 'pending' || a.status === 'clarification').length;
+  const clarificationCount = applications.filter((a) => a.status === 'clarification').length;
   const approvedCount = applications.filter((a) => a.status === 'approved').length;
   const rejectedCount = applications.filter((a) => a.status === 'rejected').length;
 
@@ -161,6 +164,29 @@ export default function FacultyApplicationsPage() {
               </Link>
             </div>
           </div>
+
+          {/* Action Required: Clarification Notice Banner */}
+          {clarificationCount > 0 && (
+            <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl text-amber-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-start gap-2.5">
+                <HelpCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-900 text-sm">Action Required: Clarification Requested</p>
+                  <p className="text-amber-800 text-xs mt-0.5">
+                    Your Head of Department requested clarification on <strong>{clarificationCount}</strong> leave application{clarificationCount > 1 ? 's' : ''}. Please provide your clarification response so the review can proceed.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('pending')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs shrink-0 cursor-pointer shadow-xs"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                View Clarification Requests
+              </button>
+            </div>
+          )}
 
           {/* Quick Filter Counts Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -345,12 +371,22 @@ export default function FacultyApplicationsPage() {
                           {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
                         </td>
                         <td className="py-3 px-3.5 text-right">
-                          <Link
-                            href={`/faculty/applications/${app.id}`}
-                            className="text-blue-900 hover:text-blue-950 font-bold hover:underline inline-flex items-center text-xs"
-                          >
-                            View Record <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                          </Link>
+                          {app.status === 'clarification' ? (
+                            <Link
+                              href={`/faculty/applications/${app.id}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs shadow-xs transition-colors shrink-0"
+                            >
+                              <MessageSquare className="w-3 h-3 text-slate-950" />
+                              Respond
+                            </Link>
+                          ) : (
+                            <Link
+                              href={`/faculty/applications/${app.id}`}
+                              className="text-blue-900 hover:text-blue-950 font-bold hover:underline inline-flex items-center text-xs"
+                            >
+                              View Record <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                            </Link>
+                          )}
                         </td>
                       </tr>
                     ))}

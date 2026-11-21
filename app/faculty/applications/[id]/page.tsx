@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import {
   getFacultyApplicationById,
   getFacultyProfile,
+  respondToClarification,
   DetailedLeaveApplication,
 } from '@/lib/supabase/faculty';
 import {
@@ -26,13 +27,15 @@ import {
   User,
   Phone,
   AlertCircle,
-  Loader2
+  Loader2,
+  Send,
+  MessageSquare
 } from 'lucide-react';
 
 export default function FacultyApplicationDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user, profile, session } = useAuth();
 
   const applicationId = params?.id ? decodeURIComponent(params.id) : '';
 
@@ -40,6 +43,12 @@ export default function FacultyApplicationDetailsPage() {
   const [departmentName, setDepartmentName] = useState('Computer Science & Engineering');
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState<string | null>(null);
+
+  // Clarification Response State
+  const [clarificationMessage, setClarificationMessage] = useState('');
+  const [submittingClarification, setSubmittingClarification] = useState(false);
+  const [clarificationError, setClarificationError] = useState<string | null>(null);
+  const [clarificationSuccess, setClarificationSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -81,6 +90,67 @@ export default function FacultyApplicationDetailsPage() {
 
   const facultyDisplayName = profile?.name || user?.email?.split('@')[0] || 'Academic Faculty';
   const facultyDesignation = profile?.designation || 'Assistant Professor';
+
+  const handleClarificationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clarificationMessage.trim() || clarificationMessage.trim().length < 3) {
+      setClarificationError('Please provide your clarification response (at least 3 characters).');
+      return;
+    }
+
+    setSubmittingClarification(true);
+    setClarificationError(null);
+    setClarificationSuccess(null);
+
+    try {
+      const res = await respondToClarification(
+        applicationId,
+        clarificationMessage.trim(),
+        session?.access_token
+      );
+
+      if (!res.success) {
+        setClarificationError(res.error || 'Failed to submit clarification response.');
+        setSubmittingClarification(false);
+        return;
+      }
+
+      setClarificationSuccess(
+        'Your clarification message was recorded and sent to the Head of Department. Your application status is now updated back to "Pending Review".'
+      );
+      const submittedText = clarificationMessage.trim();
+      setClarificationMessage('');
+
+      // Update local application state
+      setApplication((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          status: 'pending',
+          approvals: [
+            ...(prev.approvals || []),
+            {
+              id: `appr-${Date.now()}`,
+              leave_id: prev.id,
+              approver_id: user?.id || '',
+              action: 'clarification',
+              remarks: `[Applicant Clarification (${facultyDisplayName})]: ${submittedText}`,
+              action_time: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    } catch (err) {
+      setClarificationError(err instanceof Error ? err.message : 'Error submitting clarification.');
+    } finally {
+      setSubmittingClarification(false);
+    }
+  };
+
+  const latestHodApproval = [...(application?.approvals || [])]
+    .reverse()
+    .find((a) => !a.remarks?.startsWith('[Applicant Clarification'));
+  const latestHodRemark = latestHodApproval?.remarks || 'Please provide additional clarification on your leave request.';
 
   return (
     <ProtectedRoute allowedRoles={['faculty']}>
@@ -232,10 +302,98 @@ export default function FacultyApplicationDetailsPage() {
                 </div>
               </Card>
 
+              {/* Action Required: Clarification Response Box */}
+              {application.status === 'clarification' && (
+                <div className="bg-gradient-to-br from-amber-50 via-white to-sky-50 border-2 border-amber-400 rounded-2xl p-6 shadow-md space-y-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <HelpCircle className="w-5 h-5 text-amber-100" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 font-mono">
+                        Action Required from Faculty
+                      </span>
+                      <h3 className="text-base font-bold text-slate-900 mt-1 font-serif uppercase tracking-wide">
+                        Head of Department Requested Clarification
+                      </h3>
+                    </div>
+                  </div>
+
+                  {latestHodRemark && (
+                    <div className="bg-amber-100/60 p-4 rounded-xl border border-amber-200 text-slate-900 text-xs shadow-2xs space-y-1">
+                      <span className="font-bold text-amber-950 uppercase text-[10px] tracking-wider block">
+                        HOD Official Question / Remark:
+                      </span>
+                      <p className="italic text-slate-900 font-medium leading-relaxed">
+                        &quot;{latestHodRemark}&quot;
+                      </p>
+                    </div>
+                  )}
+
+                  {clarificationError && (
+                    <div className="p-3 bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-start gap-2 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <span>{clarificationError}</span>
+                    </div>
+                  )}
+
+                  {clarificationSuccess && (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs flex items-start gap-2 rounded-lg">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-emerald-900">Clarification Submitted Successfully</p>
+                        <p className="mt-0.5 text-emerald-800">{clarificationSuccess}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleClarificationSubmit} className="space-y-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 text-blue-900" />
+                        Your Clarification Message / Explanation <span className="text-rose-600">*</span>
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={clarificationMessage}
+                        onChange={(e) => setClarificationMessage(e.target.value)}
+                        disabled={submittingClarification}
+                        placeholder="e.g. My Monday 10:00 AM lecture has been arranged with Prof. Sharma. Notes and syllabus coverage have been uploaded..."
+                        className="w-full p-3 text-xs bg-white text-slate-900 border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-xl font-medium placeholder:text-slate-500 shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                      <p className="text-[11px] text-slate-500">
+                        Submitting will update the application status to <strong>Pending Review</strong> and notify your HOD.
+                      </p>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        disabled={submittingClarification || !clarificationMessage.trim()}
+                        className="bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl shadow-sm px-4 py-2 shrink-0"
+                      >
+                        {submittingClarification ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5 mr-1.5" /> Submit Response to HOD
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
               {/* Department HOD Review Audit Trail */}
               <Card
                 title="HOD Review Audit Trail"
-                subtitle="Permanent record of actions and remarks logged by Department Leadership"
+                subtitle="Permanent record of actions and remarks logged by Department Leadership & Applicant"
               >
                 {!application.approvals || application.approvals.length === 0 ? (
                   <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-center gap-2.5 shadow-2xs">
@@ -247,8 +405,39 @@ export default function FacultyApplicationDetailsPage() {
                 ) : (
                   <div className="space-y-3">
                     {application.approvals.map((appr, idx) => {
+                      const isFacultyClarification =
+                        appr.remarks?.startsWith('[Applicant Clarification') ||
+                        appr.approver_id === application.faculty_id;
                       const isApproved = appr.action === 'approved';
                       const isRejected = appr.action === 'rejected';
+
+                      if (isFacultyClarification) {
+                        const cleanRemark =
+                          appr.remarks?.replace(/^\[Applicant Clarification[^\]]*\]:\s*/, '') || appr.remarks;
+                        return (
+                          <div
+                            key={appr.id || idx}
+                            className="p-4 rounded-xl border bg-blue-50/90 border-blue-300 text-blue-950 text-xs space-y-2 shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between pb-1.5 border-b border-blue-200">
+                              <div className="flex items-center gap-1.5 font-bold text-blue-900">
+                                <User className="w-4 h-4 text-blue-800" />
+                                <span className="uppercase text-[11px] tracking-wide">
+                                  Applicant Clarification Response (Faculty)
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-blue-800 font-mono font-medium">
+                                {appr.action_time ? new Date(appr.action_time).toLocaleString() : '—'}
+                              </span>
+                            </div>
+                            <div className="text-slate-900 text-xs leading-relaxed font-medium">
+                              <span className="font-bold text-blue-950">Clarification Provided: </span>
+                              {cleanRemark || 'No written remarks provided.'}
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
                           key={appr.id || idx}
@@ -257,16 +446,16 @@ export default function FacultyApplicationDetailsPage() {
                               ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
                               : isRejected
                               ? 'bg-rose-50/80 border-rose-300 text-rose-950'
-                              : 'bg-sky-50/80 border-sky-300 text-sky-950'
+                              : 'bg-amber-50/80 border-amber-300 text-amber-950'
                           }`}
                         >
                           <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80">
                             <div className="flex items-center gap-1.5 font-bold">
                               {isApproved && <CheckCircle2 className="w-4 h-4 text-emerald-700" />}
                               {isRejected && <XCircle className="w-4 h-4 text-rose-700" />}
-                              {!isApproved && !isRejected && <HelpCircle className="w-4 h-4 text-sky-700" />}
+                              {!isApproved && !isRejected && <HelpCircle className="w-4 h-4 text-amber-700" />}
                               <span className="uppercase text-[11px] tracking-wide">
-                                Action: {appr.action}
+                                {appr.action === 'clarification' ? 'HOD Clarification Request' : `HOD Action: ${appr.action}`}
                               </span>
                             </div>
                             <span className="text-[11px] text-slate-600 font-mono font-medium">

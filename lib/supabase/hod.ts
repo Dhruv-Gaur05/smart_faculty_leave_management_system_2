@@ -16,6 +16,11 @@ export interface HodLeaveApplication {
   status: 'Pending HOD' | 'Approved' | 'Rejected' | 'Clarification Requested';
   appliedOn: string;
   hodComment?: string;
+  approvalsHistory?: Array<{
+    action: string;
+    remarks?: string | null;
+    action_time?: string;
+  }>;
 }
 
 export interface DepartmentStats {
@@ -128,8 +133,9 @@ export async function getHodDepartmentApplications(): Promise<HodLeaveApplicatio
       else if (item.status === 'rejected') uiStatus = 'Rejected';
       else if (item.status === 'clarification') uiStatus = 'Clarification Requested';
 
-      const approvalsArr = (item.approvals as unknown as Array<{ remarks?: string }>) || [];
-      const latestApproval = approvalsArr.length > 0 ? approvalsArr[approvalsArr.length - 1] : null;
+      const approvalsArr = (item.approvals as unknown as Array<{ action: string; remarks?: string | null; action_time?: string }>) || [];
+      const sortedApprovals = [...approvalsArr].sort((a, b) => (a.action_time || '').localeCompare(b.action_time || ''));
+      const latestApproval = sortedApprovals.length > 0 ? sortedApprovals[sortedApprovals.length - 1] : null;
       const profileObj = item.profiles as unknown as {
         name?: string;
         employee_id?: string;
@@ -153,6 +159,7 @@ export async function getHodDepartmentApplications(): Promise<HodLeaveApplicatio
         status: uiStatus,
         appliedOn: item.submitted_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         hodComment: latestApproval?.remarks || undefined,
+        approvalsHistory: sortedApprovals,
       };
     });
   } catch (err) {
