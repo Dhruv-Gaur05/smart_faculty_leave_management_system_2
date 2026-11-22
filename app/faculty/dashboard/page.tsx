@@ -291,9 +291,25 @@ export default function FacultyDashboardPage() {
                       <span className="text-xs font-semibold text-slate-500 ml-1">/ {b.total} Days</span>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-600 mt-3 pt-2 border-t border-slate-100 flex justify-between font-medium">
-                    <span>Used: {b.used} d</span>
-                    <span className="font-bold text-emerald-800">Avail: {b.remaining} d</span>
+                  <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1.5">
+                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden flex">
+                      <div
+                        style={{ width: `${(b.used / (b.total || 1)) * 100}%` }}
+                        className="bg-emerald-600 h-full"
+                        title={`Approved: ${b.used} days`}
+                      />
+                      <div
+                        style={{ width: `${(b.pending / (b.total || 1)) * 100}%` }}
+                        className="bg-amber-400 h-full"
+                        title={`Pending: ${b.pending} days`}
+                      />
+                    </div>
+                    <div className="text-[11px] text-slate-600 flex justify-between font-medium">
+                      <span>Used: {b.used}d</span>
+                      <span className={`font-bold ${b.remaining > 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
+                        Avail: {b.remaining}d
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}

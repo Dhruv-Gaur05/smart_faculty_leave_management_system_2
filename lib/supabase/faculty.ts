@@ -65,6 +65,8 @@ export interface FacultyLeaveBalanceItem {
   used: number;
   pending: number;
   remaining: number;
+  effectiveRemaining: number;
+  utilizationPercentage: number;
   border: string;
 }
 
@@ -111,6 +113,8 @@ export function computeFacultyLeaveBalances(
       .reduce((sum, app) => sum + Number(app.days || 0), 0);
 
     const remaining = Math.max(0, quotaInfo.total - usedDays);
+    const effectiveRemaining = Math.max(0, remaining - pendingDays);
+    const utilizationPercentage = quotaInfo.total > 0 ? Math.min(100, Math.round((usedDays / quotaInfo.total) * 100)) : 0;
 
     return {
       id: lt.id,
@@ -120,6 +124,8 @@ export function computeFacultyLeaveBalances(
       used: usedDays,
       pending: pendingDays,
       remaining,
+      effectiveRemaining,
+      utilizationPercentage,
       border: quotaInfo.border,
     };
   });
@@ -300,7 +306,7 @@ export async function getFacultyApplicationById(
 }
 
 /**
- * Submit a new leave application to Supabase.
+ * Submit a new leave application to Supabase with strict quota limit enforcement.
  */
 export async function submitLeaveApplication(params: {
   facultyId: string;
@@ -311,6 +317,59 @@ export async function submitLeaveApplication(params: {
   reason: string;
   contactDuringLeave?: string;
 }): Promise<{ data: DetailedLeaveApplication | null; error: Error | null }> {
+  // 1. Basic Parameter Validations
+  if (!params.facultyId) {
+    return { data: null, error: new Error('Faculty identifier is required for submission.') };
+  }
+  if (!params.leaveTypeId) {
+    return { data: null, error: new Error('Please select a valid leave category.') };
+  }
+  if (!params.fromDate || !params.toDate) {
+    return { data: null, error: new Error('Both start and end dates must be provided.') };
+  }
+  if (params.days <= 0) {
+    return { data: null, error: new Error('Leave duration must be at least 1 calendar day.') };
+  }
+  if (new Date(params.toDate) < new Date(params.fromDate)) {
+    return { data: null, error: new Error('Concluded date cannot be earlier than start date.') };
+  }
+
+  // 2. Strict Quota Limit Verification against real-time balances
+  try {
+    const [existingApps, leaveTypes] = await Promise.all([
+      getFacultyApplications(params.facultyId),
+      getLeaveTypes(),
+    ]);
+
+    const targetType = leaveTypes.find((t) => t.id === params.leaveTypeId);
+    const balances = computeFacultyLeaveBalances(leaveTypes, existingApps);
+    const targetBalance = balances.find(
+      (b) => b.id === params.leaveTypeId || b.type === targetType?.name
+    );
+
+    if (targetBalance) {
+      if (targetBalance.remaining <= 0) {
+        return {
+          data: null,
+          error: new Error(
+            `Annual Quota Exhausted: You have 0 available days remaining for ${targetBalance.type} (Annual Quota: ${targetBalance.total} days, ${targetBalance.used} approved days consumed). You cannot submit further applications for this leave category.`
+          ),
+        };
+      }
+
+      if (params.days > targetBalance.remaining) {
+        return {
+          data: null,
+          error: new Error(
+            `Leave Quota Exceeded: You requested ${params.days} day(s), but only have ${targetBalance.remaining} day(s) available for ${targetBalance.type} (Annual Quota: ${targetBalance.total} days, ${targetBalance.used} consumed). Maximum permitted duration is ${targetBalance.remaining} day(s).`
+          ),
+        };
+      }
+    }
+  } catch (err) {
+    console.error('Warning during quota verification:', err);
+  }
+
   const isLive = isSupabaseConfigured();
 
   const applicationPayload = {

@@ -21,13 +21,18 @@ import {
   ArrowLeft,
   Calendar,
   AlertCircle,
+  AlertOctagon,
   CheckCircle2,
   Loader2,
   BadgeCheck,
   Send,
   Phone,
   UploadCloud,
-  Info
+  Info,
+  History,
+  ChevronDown,
+  ChevronUp,
+  Layers
 } from 'lucide-react';
 
 export default function ApplyLeavePage() {
@@ -101,6 +106,9 @@ export default function ApplyLeavePage() {
     return diffDays;
   }, [fromDate, toDate]);
 
+  // Trace history drawer toggle
+  const [showTraceHistory, setShowTraceHistory] = useState(false);
+
   // Current selected leave type object
   const currentLeaveType = useMemo(() => {
     return leaveTypes.find((t) => t.id === selectedTypeId) || null;
@@ -114,6 +122,24 @@ export default function ApplyLeavePage() {
   const activeCategoryBalance = useMemo(() => {
     return leaveBalances.find((b) => b.id === selectedTypeId || b.type === currentLeaveType?.name);
   }, [leaveBalances, selectedTypeId, currentLeaveType]);
+
+  // Category-specific leave history for granular tracing
+  const categoryHistory = useMemo(() => {
+    if (!selectedTypeId) return [];
+    return applications.filter(
+      (app) => app.leave_type_id === selectedTypeId || app.leave_type?.name === currentLeaveType?.name
+    );
+  }, [applications, selectedTypeId, currentLeaveType]);
+
+  // Real-time limit & quota calculations
+  const isZeroBalance = Boolean(activeCategoryBalance && activeCategoryBalance.remaining <= 0);
+  const isQuotaExceeded = Boolean(
+    activeCategoryBalance &&
+      (isZeroBalance || (calculatedDays > 0 && calculatedDays > activeCategoryBalance.remaining))
+  );
+  const projectedRemaining = activeCategoryBalance
+    ? activeCategoryBalance.remaining - calculatedDays
+    : 0;
 
   // Form Validation & Submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,11 +178,28 @@ export default function ApplyLeavePage() {
 
     // 6. Number of days must be > 0
     if (calculatedDays <= 0) {
-      setErrorMessage('The calculated duration must be at least 1 day.');
+      setErrorMessage('The calculated duration must be at least 1 calendar day.');
       return;
     }
 
-    // 7. Reason required & prevent empty submission
+    // 7. Strict Quota Limit Verification
+    if (activeCategoryBalance) {
+      if (activeCategoryBalance.remaining <= 0) {
+        setErrorMessage(
+          `Annual Quota Exhausted: Your available balance for ${activeCategoryBalance.type} is 0 days (${activeCategoryBalance.used} of ${activeCategoryBalance.total} days already approved). Applications cannot be submitted for exhausted categories.`
+        );
+        return;
+      }
+
+      if (calculatedDays > activeCategoryBalance.remaining) {
+        setErrorMessage(
+          `Leave Quota Exceeded: You are applying for ${calculatedDays} day(s), but only have ${activeCategoryBalance.remaining} day(s) remaining for ${activeCategoryBalance.type}. Institutional policy strictly prohibits submitting applications exceeding the permitted quota.`
+        );
+        return;
+      }
+    }
+
+    // 8. Reason required & prevent empty submission
     if (!reason || reason.trim().length === 0) {
       setErrorMessage('Please provide an academic or personal reason for your leave application.');
       return;
@@ -397,15 +440,256 @@ export default function ApplyLeavePage() {
                 </div>
               )}
 
-              {/* Quota Exceeded Notice */}
-              {fromDate && toDate && activeCategoryBalance && calculatedDays > activeCategoryBalance.remaining && (
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-start gap-2.5 shadow-2xs">
-                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-amber-900 block">Quota Exceeded Notice</span>
-                    <span className="text-[11px] text-amber-800">
-                      The requested duration ({calculatedDays} days) exceeds your available balance ({activeCategoryBalance.remaining} of {activeCategoryBalance.total} days) for <strong>{activeCategoryBalance.type}</strong>. Your HOD may require additional justification.
-                    </span>
+              {/* Comprehensive Leave Quota & Tracing Panel */}
+              {activeCategoryBalance && (
+                <div className="bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                    <div className="flex items-center space-x-2">
+                      <Layers className="w-4 h-4 text-blue-900 shrink-0" />
+                      <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Official Leave Quota &amp; Usage Trace — {activeCategoryBalance.type}
+                      </h3>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-[10px] font-bold bg-blue-100 text-blue-900 px-2 py-0.5 rounded-md">
+                        {activeCategoryBalance.shortCode}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                        activeCategoryBalance.remaining > 0
+                          ? 'bg-emerald-100 text-emerald-900'
+                          : 'bg-rose-100 text-rose-900'
+                      }`}>
+                        {activeCategoryBalance.remaining} of {activeCategoryBalance.total} Days Left
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4-Stat Metric Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                        Annual Allotment
+                      </span>
+                      <span className="text-lg font-bold text-slate-900 mt-0.5 block">
+                        {activeCategoryBalance.total} <span className="text-xs font-normal text-slate-500">Days</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500">Central university quota</span>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                        Consumed (Approved)
+                      </span>
+                      <span className="text-lg font-bold text-emerald-800 mt-0.5 block">
+                        {activeCategoryBalance.used} <span className="text-xs font-normal text-slate-500">Days</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-700 font-medium">Sanctioned by HOD</span>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                        Under Review (Pending)
+                      </span>
+                      <span className="text-lg font-bold text-amber-700 mt-0.5 block">
+                        {activeCategoryBalance.pending} <span className="text-xs font-normal text-slate-500">Days</span>
+                      </span>
+                      <span className="text-[10px] text-amber-700 font-medium">Awaiting decision</span>
+                    </div>
+
+                    <div className={`p-3 rounded-xl border shadow-2xs ${
+                      activeCategoryBalance.remaining > 0
+                        ? 'bg-emerald-50/70 border-emerald-300'
+                        : 'bg-rose-50/70 border-rose-300'
+                    }`}>
+                      <span className="text-[10px] font-bold uppercase tracking-wider block text-slate-600">
+                        Available Quota
+                      </span>
+                      <span className={`text-lg font-bold mt-0.5 block ${
+                        activeCategoryBalance.remaining > 0 ? 'text-emerald-900' : 'text-rose-900'
+                      }`}>
+                        {activeCategoryBalance.remaining} <span className="text-xs font-normal text-slate-500">Days</span>
+                      </span>
+                      <span className={`text-[10px] font-bold ${
+                        activeCategoryBalance.remaining > 0 ? 'text-emerald-700' : 'text-rose-700'
+                      }`}>
+                        {activeCategoryBalance.remaining > 0 ? 'Ready for application' : 'Fully exhausted'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Real-Time Quota Limit Evaluation Banner */}
+                  {calculatedDays > 0 && (
+                    <>
+                      {isQuotaExceeded ? (
+                        <div className="p-4 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-950 text-xs flex items-start gap-3 shadow-2xs">
+                          <AlertOctagon className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-rose-950">
+                                Application Blocked: Leave Quota Exceeded
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full font-mono">
+                                Limit Enforced
+                              </span>
+                            </div>
+                            <p className="text-rose-900 leading-relaxed">
+                              You are applying for <strong>{calculatedDays} calendar day(s)</strong>, but your remaining balance for <strong>{activeCategoryBalance.type}</strong> is only <strong>{activeCategoryBalance.remaining} day(s)</strong> (out of {activeCategoryBalance.total} annual entitlement).
+                            </p>
+                            <p className="text-[11px] font-semibold text-rose-800">
+                              {isZeroBalance
+                                ? 'Your annual quota for this category is exhausted (0 days remaining). Please choose a different leave category.'
+                                : `Institutional regulations prohibit submitting leave applications that exceed your available quota. Please reduce your leave duration to at most ${activeCategoryBalance.remaining} day(s).`}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span>
+                              Quota Verified: Requesting <strong>{calculatedDays} day(s)</strong>. Remaining quota after approval: <strong>{projectedRemaining} day(s)</strong>.
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 font-mono">
+                            Within Permitted Limit
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Visual Multi-Segment Quota Utilization Bar */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-600 font-medium">
+                      <span>Quota Consumption Meter</span>
+                      <span>
+                        {Math.min(100, Math.round(((activeCategoryBalance.used + (isQuotaExceeded ? 0 : calculatedDays)) / (activeCategoryBalance.total || 1)) * 100))}% Allocated
+                      </span>
+                    </div>
+
+                    <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex">
+                      {/* Approved Used */}
+                      <div
+                        style={{ width: `${Math.min(100, (activeCategoryBalance.used / (activeCategoryBalance.total || 1)) * 100)}%` }}
+                        className="bg-emerald-600 h-full transition-all duration-300"
+                        title={`Approved: ${activeCategoryBalance.used} days`}
+                      />
+                      {/* Pending In Review */}
+                      <div
+                        style={{ width: `${Math.min(100 - (activeCategoryBalance.used / (activeCategoryBalance.total || 1)) * 100, (activeCategoryBalance.pending / (activeCategoryBalance.total || 1)) * 100)}%` }}
+                        className="bg-amber-400 h-full transition-all duration-300"
+                        title={`Pending: ${activeCategoryBalance.pending} days`}
+                      />
+                      {/* This Application */}
+                      {calculatedDays > 0 && (
+                        <div
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (calculatedDays / (activeCategoryBalance.total || 1)) * 100
+                            )}%`,
+                          }}
+                          className={`${
+                            isQuotaExceeded ? 'bg-rose-500 animate-pulse' : 'bg-blue-600'
+                          } h-full transition-all duration-300`}
+                          title={`Requested: ${calculatedDays} days`}
+                        />
+                      )}
+                    </div>
+
+                    {/* Progress Bar Legend */}
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-600 pt-0.5">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                        Approved ({activeCategoryBalance.used}d)
+                      </span>
+                      {activeCategoryBalance.pending > 0 && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-amber-400" />
+                          Pending Review ({activeCategoryBalance.pending}d)
+                        </span>
+                      )}
+                      {calculatedDays > 0 && (
+                        <span className="flex items-center gap-1 font-bold">
+                          <span className={`w-2 h-2 rounded-full ${isQuotaExceeded ? 'bg-rose-500' : 'bg-blue-600'}`} />
+                          This Request ({calculatedDays}d){isQuotaExceeded ? ' [OVER LIMIT]' : ''}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-slate-500">
+                        <span className="w-2 h-2 rounded-full bg-slate-300" />
+                        Unused Quota ({Math.max(0, activeCategoryBalance.remaining - (isQuotaExceeded ? 0 : calculatedDays))}d)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expandable Category Leave Trace History */}
+                  <div className="pt-2 border-t border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setShowTraceHistory((prev) => !prev)}
+                      className="w-full flex items-center justify-between text-xs font-bold text-slate-700 hover:text-blue-900 py-1 transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <History className="w-3.5 h-3.5 text-blue-900" />
+                        Trace {activeCategoryBalance.shortCode} Applications History ({categoryHistory.length} record{categoryHistory.length === 1 ? '' : 's'})
+                      </span>
+                      {showTraceHistory ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+
+                    {showTraceHistory && (
+                      <div className="mt-2.5">
+                        {categoryHistory.length === 0 ? (
+                          <p className="text-[11px] text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                            No prior leave applications submitted for {activeCategoryBalance.type} in Academic Year 2026-2027. Full annual quota of {activeCategoryBalance.total} days is available.
+                          </p>
+                        ) : (
+                          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                            <table className="min-w-full text-left text-xs divide-y divide-slate-200">
+                              <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-600">
+                                <tr>
+                                  <th className="px-3 py-2">Reference ID</th>
+                                  <th className="px-3 py-2">Leave Dates</th>
+                                  <th className="px-3 py-2">Duration</th>
+                                  <th className="px-3 py-2">Review Status</th>
+                                  <th className="px-3 py-2">Purpose / Justification</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {categoryHistory.map((h) => (
+                                  <tr key={h.id} className="hover:bg-slate-50/60">
+                                    <td className="px-3 py-2 font-mono font-bold text-[11px] text-slate-800">
+                                      {h.id}
+                                    </td>
+                                    <td className="px-3 py-2 text-[11px] text-slate-700 whitespace-nowrap">
+                                      {h.from_date} to {h.to_date}
+                                    </td>
+                                    <td className="px-3 py-2 font-bold text-[11px] text-slate-900">
+                                      {h.days} {h.days === 1 ? 'Day' : 'Days'}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                        h.status === 'approved'
+                                          ? 'bg-emerald-100 text-emerald-900'
+                                          : h.status === 'rejected'
+                                          ? 'bg-rose-100 text-rose-900'
+                                          : h.status === 'clarification'
+                                          ? 'bg-purple-100 text-purple-900'
+                                          : 'bg-amber-100 text-amber-900'
+                                      }`}>
+                                        {h.status}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 text-[11px] text-slate-600 truncate max-w-xs" title={h.reason}>
+                                      {h.reason}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -499,13 +783,26 @@ export default function ApplyLeavePage() {
                   type="submit"
                   variant="primary"
                   size="md"
-                  disabled={isSubmitting || !!successMessage}
-                  className="bg-blue-900 hover:bg-blue-950 px-6 py-2.5 text-xs font-bold uppercase tracking-wider"
+                  disabled={isSubmitting || !!successMessage || isQuotaExceeded || calculatedDays <= 0}
+                  className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                    isQuotaExceeded
+                      ? 'bg-rose-800 hover:bg-rose-800 text-white cursor-not-allowed opacity-90 border border-rose-700 shadow-none'
+                      : 'bg-blue-900 hover:bg-blue-950 text-white'
+                  }`}
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      <span>Submitting to Database...</span>
+                      <span>Validating &amp; Submitting...</span>
+                    </>
+                  ) : isQuotaExceeded ? (
+                    <>
+                      <AlertOctagon className="w-4 h-4 mr-1.5 text-rose-200" />
+                      <span>
+                        {isZeroBalance
+                          ? 'Quota Exhausted (0 Days Left) — Cannot Submit'
+                          : `Quota Limit Exceeded — Cannot Submit (${calculatedDays}d > ${activeCategoryBalance?.remaining}d)`}
+                      </span>
                     </>
                   ) : (
                     <>

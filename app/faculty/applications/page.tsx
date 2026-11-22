@@ -11,8 +11,11 @@ import { Badge } from '@/components/ui/Badge';
 import {
   getFacultyApplications,
   getFacultyProfile,
+  getLeaveTypes,
+  computeFacultyLeaveBalances,
   DetailedLeaveApplication,
 } from '@/lib/supabase/faculty';
+import { LeaveTypeRow } from '@/types/database';
 import {
   FileText,
   PlusSquare,
@@ -22,13 +25,16 @@ import {
   AlertCircle,
   RefreshCw,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  Calendar,
+  Layers
 } from 'lucide-react';
 
 export default function FacultyApplicationsPage() {
   const { user, profile } = useAuth();
 
   const [applications, setApplications] = useState<DetailedLeaveApplication[]>([]);
+  const [leaveTypes, setLeaveTypes] = useState<LeaveTypeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState<string | null>(null);
   const [departmentName, setDepartmentName] = useState('Computer Science & Engineering');
@@ -36,6 +42,7 @@ export default function FacultyApplicationsPage() {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'clarification'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (!user) return;
@@ -45,14 +52,18 @@ export default function FacultyApplicationsPage() {
     setErrorState(null);
 
     try {
-      const prof = await getFacultyProfile(user.id);
+      const [prof, apps, types] = await Promise.all([
+        getFacultyProfile(user.id),
+        getFacultyApplications(user.id),
+        getLeaveTypes(),
+      ]);
+
       if (prof?.department_name) {
         setDepartmentName(prof.department_name);
       }
 
-      // Fetch only this faculty's real records
-      const apps = await getFacultyApplications(user.id);
       setApplications(apps);
+      setLeaveTypes(types);
     } catch (err) {
       console.error('Failed to load applications:', err);
       setErrorState('Could not retrieve applications from database.');
@@ -67,15 +78,19 @@ export default function FacultyApplicationsPage() {
 
     (async () => {
       try {
-        const prof = await getFacultyProfile(user.id);
+        const [prof, apps, types] = await Promise.all([
+          getFacultyProfile(user.id),
+          getFacultyApplications(user.id),
+          getLeaveTypes(),
+        ]);
+
         if (isCancelled) return;
         if (prof?.department_name) {
           setDepartmentName(prof.department_name);
         }
 
-        const apps = await getFacultyApplications(user.id);
-        if (isCancelled) return;
         setApplications(apps);
+        setLeaveTypes(types);
       } catch (err) {
         if (!isCancelled) {
           console.error('Failed to load applications:', err);
@@ -93,6 +108,11 @@ export default function FacultyApplicationsPage() {
     };
   }, [user]);
 
+  // Dynamically compute real-time leave balances for quota tracing
+  const leaveBalances = useMemo(() => {
+    return computeFacultyLeaveBalances(leaveTypes, applications);
+  }, [leaveTypes, applications]);
+
   // Derived counts
   const totalCount = applications.length;
   const pendingCount = applications.filter((a) => a.status === 'pending' || a.status === 'clarification').length;
@@ -100,7 +120,7 @@ export default function FacultyApplicationsPage() {
   const approvedCount = applications.filter((a) => a.status === 'approved').length;
   const rejectedCount = applications.filter((a) => a.status === 'rejected').length;
 
-  // Filtered applications based on search and status
+  // Filtered applications based on search, status, and category
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
       // Status filter
@@ -110,6 +130,12 @@ export default function FacultyApplicationsPage() {
         } else if (statusFilter !== 'pending' && app.status !== statusFilter) {
           return false;
         }
+      }
+
+      // Category filter
+      if (categoryFilter !== 'all') {
+        const typeMatch = app.leave_type_id === categoryFilter || app.leave_type?.name === categoryFilter;
+        if (!typeMatch) return false;
       }
 
       // Search query filter (search in ID, reason, or leave category name)
@@ -123,7 +149,7 @@ export default function FacultyApplicationsPage() {
 
       return true;
     });
-  }, [applications, statusFilter, searchQuery]);
+  }, [applications, statusFilter, categoryFilter, searchQuery]);
 
   const facultyDisplayName = profile?.name || user?.email?.split('@')[0] || 'Academic Faculty';
   const facultyDesignation = profile?.designation || 'Assistant Professor';
@@ -245,6 +271,96 @@ export default function FacultyApplicationsPage() {
               </span>
               <span className="text-2xl font-bold mt-1 block">{loading ? '—' : rejectedCount}</span>
             </button>
+          </div>
+
+          {/* Session Leave Quota & Category Trace */}
+          <div className="bg-white rounded-xl border border-slate-200 p-4.5 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-blue-900" />
+                <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Session Leave Quotas &amp; Category Trace (Academic Year 2026–2027)
+                </h2>
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">
+                Click any category to filter and trace your applications
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {leaveBalances.map((b) => {
+                const isSelected = categoryFilter === b.id || categoryFilter === b.type;
+                return (
+                  <button
+                    key={b.type}
+                    type="button"
+                    onClick={() => setCategoryFilter(isSelected ? 'all' : (b.id || b.type))}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-blue-50/90 border-blue-900 ring-2 ring-blue-900/20 shadow-xs'
+                        : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/70'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                          {b.shortCode}
+                        </span>
+                        {b.pending > 0 && (
+                          <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                            {b.pending}d pending
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-slate-900 mt-1 truncate" title={b.type}>
+                        {b.type}
+                      </div>
+                      <div className="text-xl font-bold text-slate-950 mt-1">
+                        {b.remaining}
+                        <span className="text-xs font-normal text-slate-500 ml-1">/ {b.total}d</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/80 space-y-1.5">
+                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden flex">
+                        <div
+                          style={{ width: `${(b.used / (b.total || 1)) * 100}%` }}
+                          className="bg-emerald-600 h-full"
+                          title={`Approved: ${b.used}d`}
+                        />
+                        <div
+                          style={{ width: `${(b.pending / (b.total || 1)) * 100}%` }}
+                          className="bg-amber-400 h-full"
+                          title={`Pending: ${b.pending}d`}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-slate-600 font-medium">
+                        <span>Used: {b.used}d</span>
+                        <span className={b.remaining > 0 ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
+                          Avail: {b.remaining}d
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {categoryFilter !== 'all' && (
+              <div className="flex items-center justify-between pt-1 text-xs bg-blue-50/60 p-2 rounded-lg border border-blue-200">
+                <span className="text-blue-950 text-[11px] font-medium flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-blue-900" />
+                  Filtering applications by category: <strong className="font-bold">{categoryFilter}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter('all')}
+                  className="text-[11px] text-blue-900 font-bold hover:underline cursor-pointer"
+                >
+                  Clear Category Filter
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Search & Actions Bar */}
