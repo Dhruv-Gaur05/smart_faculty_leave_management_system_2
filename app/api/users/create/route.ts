@@ -82,24 +82,32 @@ export async function POST(request: Request) {
     }
 
     // 3. Enforce Role-Based Provisioning Boundaries
-    let finalRole: 'hod' | 'faculty';
-    let finalDepartmentId: string;
+    let finalRole: 'admin' | 'hod' | 'faculty';
+    let finalDepartmentId: string | null = null;
+    let deptNameDisplay = 'Central Administration';
 
     if (callerRole === 'admin') {
-      if (requestedRole !== 'hod' && requestedRole !== 'faculty') {
+      if (requestedRole !== 'admin' && requestedRole !== 'hod' && requestedRole !== 'faculty') {
         return NextResponse.json(
-          { error: 'Invalid target role. Admin can create accounts with role "hod" or "faculty".' },
+          { error: 'Invalid target role. Admin can create accounts with role "admin", "hod", or "faculty".' },
           { status: 400 }
         );
       }
-      if (!requestedDepartmentId) {
-        return NextResponse.json(
-          { error: 'Please select a department to assign this staff member to.' },
-          { status: 400 }
-        );
-      }
+
       finalRole = requestedRole;
-      finalDepartmentId = requestedDepartmentId;
+
+      if (finalRole === 'admin') {
+        // For System Administrators, department can be optional (null for Central Administration) or selected
+        finalDepartmentId = requestedDepartmentId || null;
+      } else {
+        if (!requestedDepartmentId) {
+          return NextResponse.json(
+            { error: 'Please select an academic department to assign this staff member to.' },
+            { status: 400 }
+          );
+        }
+        finalDepartmentId = requestedDepartmentId;
+      }
     } else {
       // Caller is HOD: strictly restricted to adding Faculty to their OWN department
       if (requestedRole && requestedRole !== 'faculty') {
@@ -141,18 +149,21 @@ export async function POST(request: Request) {
 
     const supabaseAdmin = getSupabaseAdminClient();
 
-    // 5. Verify target department exists
-    const { data: deptRow, error: deptError } = await supabaseAdmin
-      .from('departments')
-      .select('id, department_name')
-      .eq('id', finalDepartmentId)
-      .single();
+    // 5. Verify target department exists if a departmentId is provided
+    if (finalDepartmentId) {
+      const { data: deptRow, error: deptError } = await supabaseAdmin
+        .from('departments')
+        .select('id, department_name')
+        .eq('id', finalDepartmentId)
+        .single();
 
-    if (deptError || !deptRow) {
-      return NextResponse.json(
-        { error: 'The selected department does not exist in the database.' },
-        { status: 404 }
-      );
+      if (deptError || !deptRow) {
+        return NextResponse.json(
+          { error: 'The selected department does not exist in the database.' },
+          { status: 404 }
+        );
+      }
+      deptNameDisplay = deptRow.department_name;
     }
 
     // 6. Check for duplicate email or employee ID in profiles
@@ -222,7 +233,7 @@ export async function POST(request: Request) {
     }
 
     // 9. If creating an HOD, automatically appoint them on departments.hod_id
-    if (finalRole === 'hod') {
+    if (finalRole === 'hod' && finalDepartmentId) {
       const { error: deptUpdateError } = await supabaseAdmin
         .from('departments')
         .update({ hod_id: newUserId })
@@ -233,12 +244,19 @@ export async function POST(request: Request) {
       }
     }
 
+    const roleTitle =
+      finalRole === 'admin'
+        ? 'System Administrator'
+        : finalRole === 'hod'
+        ? 'Head of Department'
+        : 'Faculty member';
+
     return NextResponse.json(
       {
-        message: `${finalRole === 'hod' ? 'HOD' : 'Faculty member'} "${name}" created and assigned to ${deptRow.department_name}.`,
+        message: `${roleTitle} "${name}" created successfully (${deptNameDisplay}).`,
         user: {
           ...insertedProfile,
-          department_name: deptRow.department_name,
+          department_name: deptNameDisplay,
         },
       },
       { status: 201 }

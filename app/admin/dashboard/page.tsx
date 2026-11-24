@@ -100,7 +100,7 @@ export default function AdminDashboardPage() {
         </Card>
 
         {/* Quick Administration Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card title="Manage Departments" subtitle="University Academic Units">
             <p className="text-xs text-slate-700 leading-relaxed mb-4 font-medium">
               Configure department structures, assign Heads of Department, and oversee active faculty leaves.
@@ -109,15 +109,29 @@ export default function AdminDashboardPage() {
               variant="primary"
               size="sm"
               className="w-full py-2.5 rounded-lg font-bold"
-              onClick={() => router.push('/admin')}
+              onClick={() => router.push('/admin#departments')}
             >
-              <Building2 className="w-4 h-4 mr-1.5" /> Open Department Registry
+              <Building2 className="w-4 h-4 mr-1.5" /> Department Registry
+            </Button>
+          </Card>
+
+          <Card title="System Administrators" subtitle="Multi-Admin Governance">
+            <p className="text-xs text-slate-700 leading-relaxed mb-4 font-medium">
+              View all active administrators, promote existing staff members to admin, or provision new admins.
+            </p>
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full py-2.5 rounded-lg font-bold bg-blue-950 hover:bg-slate-900"
+              onClick={() => router.push('/admin#administrators')}
+            >
+              <ShieldCheck className="w-4 h-4 mr-1.5" /> Manage Admins
             </Button>
           </Card>
 
           <Card title="Faculty Directory" subtitle="All University Staff">
             <p className="text-xs text-slate-700 leading-relaxed mb-4 font-medium">
-              Audit staff profiles, modify roles, and oversee academic leave policy compliance.
+              Audit staff profiles, modify roles, reset passwords, and oversee academic leave policies.
             </p>
             <Button
               variant="secondary"
@@ -125,7 +139,7 @@ export default function AdminDashboardPage() {
               className="w-full py-2.5 rounded-lg font-bold"
               onClick={() => router.push('/admin#directory')}
             >
-              <Users className="w-4 h-4 mr-1.5" /> View Faculty Directory
+              <Users className="w-4 h-4 mr-1.5" /> Staff Directory
             </Button>
           </Card>
 

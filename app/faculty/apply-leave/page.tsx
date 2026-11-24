@@ -29,10 +29,12 @@ import {
   Phone,
   UploadCloud,
   Info,
+  Clock,
   History,
   ChevronDown,
   ChevronUp,
-  Layers
+  Layers,
+  FileText
 } from 'lucide-react';
 
 export default function ApplyLeavePage() {
@@ -135,7 +137,7 @@ export default function ApplyLeavePage() {
   const isZeroBalance = Boolean(activeCategoryBalance && activeCategoryBalance.remaining <= 0);
   const isQuotaExceeded = Boolean(
     activeCategoryBalance &&
-      (isZeroBalance || (calculatedDays > 0 && calculatedDays > activeCategoryBalance.remaining))
+    (isZeroBalance || (calculatedDays > 0 && calculatedDays > activeCategoryBalance.remaining))
   );
   const projectedRemaining = activeCategoryBalance
     ? activeCategoryBalance.remaining - calculatedDays
@@ -373,9 +375,8 @@ export default function ApplyLeavePage() {
                       <span className="text-slate-700 font-medium">
                         Session Quota: <strong className="text-slate-950 font-bold">{activeCategoryBalance.remaining}</strong> / {activeCategoryBalance.total} Days Available
                       </span>
-                      <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-                        activeCategoryBalance.remaining > 0 ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${activeCategoryBalance.remaining > 0 ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
+                        }`}>
                         {activeCategoryBalance.used > 0 ? `${activeCategoryBalance.used}d consumed` : '100% available'}
                       </span>
                     </div>
@@ -419,11 +420,10 @@ export default function ApplyLeavePage() {
 
               {/* 4. Automatically Calculated Number of Days */}
               {fromDate && toDate && (
-                <div className={`p-4 rounded-xl border flex items-center justify-between text-xs shadow-2xs ${
-                  new Date(toDate) < new Date(fromDate)
-                    ? 'bg-rose-50 border-rose-300 text-rose-950'
-                    : 'bg-blue-50/90 border-blue-200 text-blue-950'
-                }`}>
+                <div className={`p-4 rounded-xl border flex items-center justify-between text-xs shadow-2xs ${new Date(toDate) < new Date(fromDate)
+                  ? 'bg-rose-50 border-rose-300 text-rose-950'
+                  : 'bg-blue-50/90 border-blue-200 text-blue-950'
+                  }`}>
                   <div className="flex items-center space-x-2 font-medium">
                     <Calendar className="w-4 h-4 text-blue-900 shrink-0" />
                     <span>
@@ -454,11 +454,10 @@ export default function ApplyLeavePage() {
                       <span className="font-mono text-[10px] font-bold bg-blue-100 text-blue-900 px-2 py-0.5 rounded-md">
                         {activeCategoryBalance.shortCode}
                       </span>
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                        activeCategoryBalance.remaining > 0
-                          ? 'bg-emerald-100 text-emerald-900'
-                          : 'bg-rose-100 text-rose-900'
-                      }`}>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${activeCategoryBalance.remaining > 0
+                        ? 'bg-emerald-100 text-emerald-900'
+                        : 'bg-rose-100 text-rose-900'
+                        }`}>
                         {activeCategoryBalance.remaining} of {activeCategoryBalance.total} Days Left
                       </span>
                     </div>
@@ -496,22 +495,19 @@ export default function ApplyLeavePage() {
                       <span className="text-[10px] text-amber-700 font-medium">Awaiting decision</span>
                     </div>
 
-                    <div className={`p-3 rounded-xl border shadow-2xs ${
-                      activeCategoryBalance.remaining > 0
-                        ? 'bg-emerald-50/70 border-emerald-300'
-                        : 'bg-rose-50/70 border-rose-300'
-                    }`}>
+                    <div className={`p-3 rounded-xl border shadow-2xs ${activeCategoryBalance.remaining > 0
+                      ? 'bg-emerald-50/70 border-emerald-300'
+                      : 'bg-rose-50/70 border-rose-300'
+                      }`}>
                       <span className="text-[10px] font-bold uppercase tracking-wider block text-slate-600">
                         Available Quota
                       </span>
-                      <span className={`text-lg font-bold mt-0.5 block ${
-                        activeCategoryBalance.remaining > 0 ? 'text-emerald-900' : 'text-rose-900'
-                      }`}>
+                      <span className={`text-lg font-bold mt-0.5 block ${activeCategoryBalance.remaining > 0 ? 'text-emerald-900' : 'text-rose-900'
+                        }`}>
                         {activeCategoryBalance.remaining} <span className="text-xs font-normal text-slate-500">Days</span>
                       </span>
-                      <span className={`text-[10px] font-bold ${
-                        activeCategoryBalance.remaining > 0 ? 'text-emerald-700' : 'text-rose-700'
-                      }`}>
+                      <span className={`text-[10px] font-bold ${activeCategoryBalance.remaining > 0 ? 'text-emerald-700' : 'text-rose-700'
+                        }`}>
                         {activeCategoryBalance.remaining > 0 ? 'Ready for application' : 'Fully exhausted'}
                       </span>
                     </div>
@@ -589,9 +585,8 @@ export default function ApplyLeavePage() {
                               (calculatedDays / (activeCategoryBalance.total || 1)) * 100
                             )}%`,
                           }}
-                          className={`${
-                            isQuotaExceeded ? 'bg-rose-500 animate-pulse' : 'bg-blue-600'
-                          } h-full transition-all duration-300`}
+                          className={`${isQuotaExceeded ? 'bg-rose-500 animate-pulse' : 'bg-blue-600'
+                            } h-full transition-all duration-300`}
                           title={`Requested: ${calculatedDays} days`}
                         />
                       )}
@@ -667,15 +662,14 @@ export default function ApplyLeavePage() {
                                       {h.days} {h.days === 1 ? 'Day' : 'Days'}
                                     </td>
                                     <td className="px-3 py-2">
-                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                        h.status === 'approved'
-                                          ? 'bg-emerald-100 text-emerald-900'
-                                          : h.status === 'rejected'
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${h.status === 'approved'
+                                        ? 'bg-emerald-100 text-emerald-900'
+                                        : h.status === 'rejected'
                                           ? 'bg-rose-100 text-rose-900'
                                           : h.status === 'clarification'
-                                          ? 'bg-purple-100 text-purple-900'
-                                          : 'bg-amber-100 text-amber-900'
-                                      }`}>
+                                            ? 'bg-purple-100 text-purple-900'
+                                            : 'bg-amber-100 text-amber-900'
+                                        }`}>
                                         {h.status}
                                       </span>
                                     </td>
@@ -784,11 +778,10 @@ export default function ApplyLeavePage() {
                   variant="primary"
                   size="md"
                   disabled={isSubmitting || !!successMessage || isQuotaExceeded || calculatedDays <= 0}
-                  className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${
-                    isQuotaExceeded
-                      ? 'bg-rose-800 hover:bg-rose-800 text-white cursor-not-allowed opacity-90 border border-rose-700 shadow-none'
-                      : 'bg-blue-900 hover:bg-blue-950 text-white'
-                  }`}
+                  className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${isQuotaExceeded
+                    ? 'bg-rose-800 hover:bg-rose-800 text-white cursor-not-allowed opacity-90 border border-rose-700 shadow-none'
+                    : 'bg-blue-900 hover:bg-blue-950 text-white'
+                    }`}
                 >
                   {isSubmitting ? (
                     <>

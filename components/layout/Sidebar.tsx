@@ -13,6 +13,7 @@ import {
   PieChart,
   UserCheck,
   Shield,
+  ShieldCheck,
   Clock
 } from 'lucide-react';
 
@@ -47,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   } else if (role === 'admin') {
     roleItems = [
       { name: 'System Overview', href: '/admin/dashboard', icon: Shield },
+      { name: 'System Administrators', href: '/admin#administrators', icon: ShieldCheck },
       { name: 'Manage Departments', href: '/admin#departments', icon: Building2 },
       { name: 'Faculty Directory', href: '/admin#directory', icon: Users },
       { name: 'Portal Logs & Audit', href: '/admin#audit', icon: FileText },
@@ -93,8 +95,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.name}
                   href={item.href}
                   className={`flex items-center space-x-2.5 px-3 py-2.5 text-xs font-semibold tracking-wide rounded-lg border transition-all ${isActive
-                      ? 'bg-blue-900 text-white border-blue-950 shadow-xs'
-                      : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                    ? 'bg-blue-900 text-white border-blue-950 shadow-xs'
+                    : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                     }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />

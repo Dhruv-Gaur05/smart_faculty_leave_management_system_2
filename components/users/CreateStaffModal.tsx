@@ -13,7 +13,8 @@ import {
   Eye,
   EyeOff,
   Building2,
-  ShieldAlert
+  ShieldAlert,
+  Shield
 } from 'lucide-react';
 
 export interface DepartmentOption {
@@ -29,7 +30,7 @@ interface CreateStaffModalProps {
   mode: 'admin' | 'hod';
   departments: DepartmentOption[];
   lockedDepartment?: DepartmentOption | null;
-  defaultRole?: 'hod' | 'faculty';
+  defaultRole?: 'admin' | 'hod' | 'faculty';
   defaultDepartmentId?: string;
 }
 
@@ -49,13 +50,17 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
       ? lockedDepartment.id
       : defaultDepartmentId || (departments.length > 0 ? departments[0].id : '');
 
-  const [role, setRole] = useState<'hod' | 'faculty'>(initialRole);
+  const [role, setRole] = useState<'admin' | 'hod' | 'faculty'>(initialRole);
   const [departmentId, setDepartmentId] = useState<string>(initialDepartmentId);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [employeeId, setEmployeeId] = useState('');
   const [designation, setDesignation] = useState(
-    initialRole === 'hod' ? 'Head of Department' : 'Assistant Professor'
+    initialRole === 'admin'
+      ? 'System Administrator'
+      : initialRole === 'hod'
+      ? 'Head of Department'
+      : 'Assistant Professor'
   );
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -64,11 +69,13 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [missingKeyWarning, setMissingKeyWarning] = useState(false);
 
-  const handleRoleChange = (newRole: 'hod' | 'faculty') => {
+  const handleRoleChange = (newRole: 'admin' | 'hod' | 'faculty') => {
     setRole(newRole);
-    if (newRole === 'hod' && designation === 'Assistant Professor') {
+    if (newRole === 'admin') {
+      setDesignation('System Administrator');
+    } else if (newRole === 'hod') {
       setDesignation('Head of Department');
-    } else if (newRole === 'faculty' && designation === 'Head of Department') {
+    } else if (newRole === 'faculty') {
       setDesignation('Assistant Professor');
     }
   };
@@ -84,7 +91,7 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
     setErrorMsg(null);
     setMissingKeyWarning(false);
 
-    if (!departmentId) {
+    if (role !== 'admin' && !departmentId) {
       setErrorMsg('Please select or assign a valid academic department first.');
       return;
     }
@@ -103,7 +110,7 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
       employeeId: employeeId.trim(),
       designation: designation.trim(),
       role: mode === 'hod' ? 'faculty' : role,
-      departmentId,
+      departmentId: departmentId || null,
     });
 
     setSubmitting(false);
@@ -152,12 +159,13 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
           {mode === 'admin' ? (
             <select
               value={role}
-              onChange={(e) => handleRoleChange(e.target.value as 'hod' | 'faculty')}
+              onChange={(e) => handleRoleChange(e.target.value as 'admin' | 'hod' | 'faculty')}
               disabled={submitting}
               className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 font-bold shadow-2xs"
             >
-              <option value="hod">Head of Department (HOD)</option>
               <option value="faculty">Faculty Member</option>
+              <option value="hod">Head of Department (HOD)</option>
+              <option value="admin">System Administrator (Admin)</option>
             </select>
           ) : (
             <input
@@ -171,17 +179,20 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
 
         <div>
           <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
-            Department <span className="text-rose-600">*</span>
+            Department {role !== 'admin' && <span className="text-rose-600">*</span>}
           </label>
           {mode === 'admin' ? (
             <select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              required
-              disabled={submitting || departments.length === 0}
+              required={role !== 'admin'}
+              disabled={submitting}
               className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 font-medium shadow-2xs"
             >
-              {departments.length === 0 ? (
+              {role === 'admin' && (
+                <option value="">Central Administration (Default)</option>
+              )}
+              {departments.length === 0 && role !== 'admin' ? (
                 <option value="">-- Create a Department First --</option>
               ) : (
                 departments.map((d) => (
@@ -199,6 +210,19 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
           )}
         </div>
       </div>
+
+      {/* Admin Privileges Info Banner */}
+      {role === 'admin' && (
+        <div className="p-3 bg-blue-50/90 border border-blue-200 text-blue-950 text-xs rounded-xl flex items-start gap-2.5 shadow-2xs">
+          <Shield className="w-4 h-4 text-blue-900 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold text-blue-950 block">System Administrator Privileges</span>
+            <span className="text-[11px] text-blue-900 leading-relaxed">
+              This user will have full institutional authority to manage all academic departments, staff profiles, HOD appointments, password resets, and university leave policies.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Name & Employee ID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -301,7 +325,7 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
           </button>
         </div>
         <p className="text-[11px] text-slate-600 font-medium mt-1.5">
-          Email is auto-confirmed. Share these credentials directly with the {role === 'hod' ? 'HOD' : 'faculty member'}.
+          Email is auto-confirmed. Share these credentials directly with the {role === 'admin' ? 'administrator' : role === 'hod' ? 'HOD' : 'faculty member'}.
         </p>
       </div>
 
@@ -310,7 +334,12 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
         <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={submitting}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary" size="sm" disabled={submitting || !departmentId}>
+        <Button
+          type="submit"
+          variant="primary"
+          size="sm"
+          disabled={submitting || (role !== 'admin' && !departmentId)}
+        >
           {submitting ? (
             <>
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -319,7 +348,7 @@ const CreateStaffForm: React.FC<Omit<CreateStaffModalProps, 'isOpen'>> = ({
           ) : (
             <>
               <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-              Create {role === 'hod' ? 'HOD' : 'Faculty'} Account
+              Create {role === 'admin' ? 'Administrator' : role === 'hod' ? 'HOD' : 'Faculty'} Account
             </>
           )}
         </Button>
@@ -346,16 +375,20 @@ export const CreateStaffModal: React.FC<CreateStaffModalProps> = ({
       title={
         mode === 'hod'
           ? 'Onboard Department Faculty Member'
-          : defaultRole === 'hod'
-            ? 'Appoint / Onboard Department HOD'
-            : 'Create University Staff Account'
+          : defaultRole === 'admin'
+            ? 'Provision System Administrator Account'
+            : defaultRole === 'hod'
+              ? 'Appoint / Onboard Department HOD'
+              : 'Create University Staff Account'
       }
       subtitle={
         mode === 'hod'
           ? 'Add a new faculty member strictly under your academic department'
-          : defaultRole === 'hod'
-            ? 'Provision new HOD credentials with automatic department allocation'
-            : 'Provision HOD or Faculty credentials with automatic department assignment'
+          : defaultRole === 'admin'
+            ? 'Provision new administrator credentials with institutional governance permissions'
+            : defaultRole === 'hod'
+              ? 'Provision new HOD credentials with automatic department allocation'
+              : 'Provision Administrator, HOD, or Faculty credentials with automatic assignment'
       }
     >
       {isOpen && (

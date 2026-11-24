@@ -6,6 +6,7 @@ export interface AdminSystemStats {
   totalDepartments: number;
   totalHods: number;
   totalFaculty: number;
+  totalAdmins: number;
   activeLeavesToday: number;
   databaseStatus: string;
 }
@@ -28,8 +29,8 @@ export interface CreateStaffAccountPayload {
   password: string;
   employeeId: string;
   designation: string;
-  role: 'hod' | 'faculty';
-  departmentId: string;
+  role: 'admin' | 'hod' | 'faculty';
+  departmentId?: string | null;
 }
 
 /**
@@ -382,6 +383,149 @@ export async function createStaffAccount(
 }
 
 /**
+ * Fetch all System Administrators across the university.
+ * Prioritizes privileged server API route when accessToken is provided.
+ */
+export async function getSystemAdministrators(accessToken?: string): Promise<StaffMember[]> {
+  if (accessToken) {
+    try {
+      const res = await fetch('/api/admin/administrators', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.administrators && Array.isArray(data.administrators)) {
+          return data.administrators as StaffMember[];
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Could not fetch administrators via server API, using direct query fallback:', apiErr);
+    }
+  }
+
+  const isLive = isSupabaseConfigured();
+  if (!isLive) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        employee_id,
+        name,
+        email,
+        department_id,
+        designation,
+        role,
+        created_at,
+        departments:department_id (
+          department_name
+        )
+      `)
+      .eq('role', 'admin')
+      .order('created_at', { ascending: true });
+
+    if (error || !data) {
+      console.error('Error fetching administrators directly:', error);
+      return [];
+    }
+
+    return data.map((row) => {
+      const deptObj = row.departments as unknown as { department_name?: string } | null;
+      return {
+        id: row.id,
+        employee_id: row.employee_id,
+        name: row.name,
+        email: row.email,
+        department_id: row.department_id,
+        department_name: deptObj?.department_name || 'Central Administration',
+        designation: row.designation || 'System Administrator',
+        role: 'admin' as UserRole,
+        created_at: row.created_at,
+      };
+    });
+  } catch (err) {
+    console.error('Exception in getSystemAdministrators:', err);
+    return [];
+  }
+}
+
+/**
+ * Promote an existing staff member (Faculty or HOD) to System Administrator
+ */
+export async function promoteStaffToAdmin(
+  accessToken: string | undefined,
+  profileId: string,
+  designation?: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  if (!accessToken) {
+    return { success: false, error: 'Session authentication token is missing. Please sign in again.' };
+  }
+
+  try {
+    const res = await fetch('/api/admin/administrators/assign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ profileId, designation }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Failed to promote staff member to administrator.' };
+    }
+
+    return { success: true, message: data.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Network error promoting staff to admin.',
+    };
+  }
+}
+
+/**
+ * Revoke System Administrator privileges from an administrator account
+ */
+export async function revokeAdminPrivileges(
+  accessToken: string | undefined,
+  profileId: string,
+  targetRole: 'faculty' | 'hod' = 'faculty'
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  if (!accessToken) {
+    return { success: false, error: 'Session authentication token is missing. Please sign in again.' };
+  }
+
+  try {
+    const res = await fetch('/api/admin/administrators/revoke', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ profileId, targetRole }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Failed to revoke administrator privileges.' };
+    }
+
+    return { success: true, message: data.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Network error revoking admin privileges.',
+    };
+  }
+}
+
+/**
  * Fetch overall university administration metrics
  */
 export async function getAdminSystemStats(): Promise<AdminSystemStats> {
@@ -391,6 +535,7 @@ export async function getAdminSystemStats(): Promise<AdminSystemStats> {
       totalDepartments: 4,
       totalHods: 4,
       totalFaculty: 92,
+      totalAdmins: 1,
       activeLeavesToday: 6,
       databaseStatus: 'Demo Mode',
     };
@@ -411,6 +556,11 @@ export async function getAdminSystemStats(): Promise<AdminSystemStats> {
       .select('id', { count: 'exact', head: true })
       .eq('role', 'faculty');
 
+    const { count: adminCount } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'admin');
+
     const todayStr = new Date().toISOString().split('T')[0];
     const { count: leavesTodayCount } = await supabase
       .from('leave_applications')
@@ -423,6 +573,7 @@ export async function getAdminSystemStats(): Promise<AdminSystemStats> {
       totalDepartments: deptCount ?? 0,
       totalHods: hodCount ?? 0,
       totalFaculty: facultyCount ?? 0,
+      totalAdmins: adminCount ?? 1,
       activeLeavesToday: leavesTodayCount ?? 0,
       databaseStatus: 'Active & Verified (RLS Protected)',
     };
@@ -431,6 +582,7 @@ export async function getAdminSystemStats(): Promise<AdminSystemStats> {
       totalDepartments: 0,
       totalHods: 0,
       totalFaculty: 0,
+      totalAdmins: 1,
       activeLeavesToday: 0,
       databaseStatus: 'Active (Supabase)',
     };

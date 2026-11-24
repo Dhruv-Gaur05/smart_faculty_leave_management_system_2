@@ -21,6 +21,8 @@ import {
   AlertCircle,
   KeyRound,
   Shield,
+  ShieldCheck,
+  ShieldAlert,
   Sparkles,
   Copy,
   Check,
@@ -35,6 +37,9 @@ import {
   getAdminDepartments,
   getAdminSystemStats,
   getAllStaffMembers,
+  getSystemAdministrators,
+  promoteStaffToAdmin,
+  revokeAdminPrivileges,
   createDepartment,
   assignDepartmentHod,
   checkUserProvisioningStatus,
@@ -55,10 +60,12 @@ export default function AdminPortalPage() {
 
   const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [administrators, setAdministrators] = useState<StaffMember[]>([]);
   const [stats, setStats] = useState<AdminSystemStats>({
     totalDepartments: 0,
     totalHods: 0,
     totalFaculty: 0,
+    totalAdmins: 1,
     activeLeavesToday: 0,
     databaseStatus: 'Connecting...',
   });
@@ -68,7 +75,7 @@ export default function AdminPortalPage() {
   // Filters
   const [deptSearchTerm, setDeptSearchTerm] = useState('');
   const [staffSearchTerm, setStaffSearchTerm] = useState('');
-  const [staffRoleFilter, setStaffRoleFilter] = useState<'all' | 'hod' | 'faculty'>('all');
+  const [staffRoleFilter, setStaffRoleFilter] = useState<'all' | 'admin' | 'hod' | 'faculty'>('all');
   const [staffDeptFilter, setStaffDeptFilter] = useState<string>('all');
 
   // Modals & Feedback
@@ -78,9 +85,23 @@ export default function AdminPortalPage() {
   const [deptFormError, setDeptFormError] = useState<string | null>(null);
 
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
-  const [staffModalDefaultRole, setStaffModalDefaultRole] = useState<'hod' | 'faculty'>('hod');
+  const [staffModalDefaultRole, setStaffModalDefaultRole] = useState<'admin' | 'hod' | 'faculty'>('admin');
   const [staffModalDefaultDeptId, setStaffModalDefaultDeptId] = useState<string | undefined>(undefined);
   const [feedbackBanner, setFeedbackBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Promote Member to Admin Modal State
+  const [isPromoteAdminModalOpen, setIsPromoteAdminModalOpen] = useState(false);
+  const [targetPromoteStaff, setTargetPromoteStaff] = useState<StaffMember | null>(null);
+  const [selectedPromoteCandidateId, setSelectedPromoteCandidateId] = useState('');
+  const [promoteDesignation, setPromoteDesignation] = useState('');
+  const [promotingAdmin, setPromotingAdmin] = useState(false);
+  const [promoteAdminError, setPromoteAdminError] = useState<string | null>(null);
+
+  // Revoke Admin Access Modal State
+  const [isRevokeAdminModalOpen, setIsRevokeAdminModalOpen] = useState(false);
+  const [targetRevokeAdmin, setTargetRevokeAdmin] = useState<StaffMember | null>(null);
+  const [revokingAdmin, setRevokingAdmin] = useState(false);
+  const [revokeAdminError, setRevokeAdminError] = useState<string | null>(null);
 
   // Appoint / Change HOD Modal State
   const [isAppointHodModalOpen, setIsAppointHodModalOpen] = useState(false);
@@ -112,15 +133,17 @@ export default function AdminPortalPage() {
     setLoading(true);
     try {
       const activeToken = session?.access_token;
-      const [liveDepts, systemStats, allStaff, apiReady] = await Promise.all([
+      const [liveDepts, systemStats, allStaff, liveAdmins, apiReady] = await Promise.all([
         getAdminDepartments(activeToken),
         getAdminSystemStats(),
         getAllStaffMembers(),
+        getSystemAdministrators(activeToken),
         checkUserProvisioningStatus(),
       ]);
       setDepartments(liveDepts);
       setStats(systemStats);
       setStaffMembers(allStaff);
+      setAdministrators(liveAdmins);
       setProvisioningReady(apiReady);
     } catch (e) {
       console.error('Error loading admin portal data:', e);
@@ -136,13 +159,15 @@ export default function AdminPortalPage() {
       getAdminDepartments(activeToken),
       getAdminSystemStats(),
       getAllStaffMembers(),
+      getSystemAdministrators(activeToken),
       checkUserProvisioningStatus(),
     ])
-      .then(([liveDepts, systemStats, allStaff, apiReady]) => {
+      .then(([liveDepts, systemStats, allStaff, liveAdmins, apiReady]) => {
         if (!active) return;
         setDepartments(liveDepts);
         setStats(systemStats);
         setStaffMembers(allStaff);
+        setAdministrators(liveAdmins);
         setProvisioningReady(apiReady);
       })
       .catch((e) => {
@@ -274,6 +299,65 @@ export default function AdminPortalPage() {
     loadData();
   };
 
+  const handleOpenPromoteModal = (member?: StaffMember) => {
+    if (member) {
+      setTargetPromoteStaff(member);
+      setSelectedPromoteCandidateId(member.id);
+      setPromoteDesignation(
+        member.designation ? `${member.designation} & Administrator` : 'System Administrator'
+      );
+    } else {
+      setTargetPromoteStaff(null);
+      setSelectedPromoteCandidateId('');
+      setPromoteDesignation('');
+    }
+    setPromoteAdminError(null);
+    setIsPromoteAdminModalOpen(true);
+  };
+
+  const handleConfirmPromoteAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPromoteCandidateId) {
+      setPromoteAdminError('Please choose a staff member to promote.');
+      return;
+    }
+
+    setPromotingAdmin(true);
+    setPromoteAdminError(null);
+
+    const res = await promoteStaffToAdmin(session?.access_token, selectedPromoteCandidateId, promoteDesignation);
+    setPromotingAdmin(false);
+
+    if (!res.success) {
+      setPromoteAdminError(res.error || 'Failed to promote member to administrator.');
+      return;
+    }
+
+    setIsPromoteAdminModalOpen(false);
+    showFeedback('success', res.message || 'Staff member successfully granted System Administrator privileges.');
+    loadData();
+  };
+
+  const handleConfirmRevokeAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetRevokeAdmin) return;
+
+    setRevokingAdmin(true);
+    setRevokeAdminError(null);
+
+    const res = await revokeAdminPrivileges(session?.access_token, targetRevokeAdmin.id, 'faculty');
+    setRevokingAdmin(false);
+
+    if (!res.success) {
+      setRevokeAdminError(res.error || 'Failed to revoke administrator privileges.');
+      return;
+    }
+
+    setIsRevokeAdminModalOpen(false);
+    showFeedback('success', res.message || 'Administrator privileges revoked successfully.');
+    loadData();
+  };
+
   const handleSwitchToCreateHod = () => {
     if (!targetAppointDept) return;
     const deptId = targetAppointDept.id;
@@ -282,6 +366,10 @@ export default function AdminPortalPage() {
     setStaffModalDefaultDeptId(deptId);
     setIsAddStaffOpen(true);
   };
+
+  const nonAdminCandidates = useMemo(() => {
+    return staffMembers.filter((m) => m.role !== 'admin');
+  }, [staffMembers]);
 
   const filteredDepts = useMemo(() => {
     const q = deptSearchTerm.toLowerCase();
@@ -315,6 +403,7 @@ export default function AdminPortalPage() {
     });
   }, [staffMembers, staffRoleFilter, staffDeptFilter, staffSearchTerm]);
 
+  const adminCount = staffMembers.filter((m) => m.role === 'admin').length || administrators.length || 1;
   const hodCount = staffMembers.filter((m) => m.role === 'hod').length;
   const facultyCount = staffMembers.filter((m) => m.role === 'faculty').length;
 
@@ -348,6 +437,18 @@ export default function AdminPortalPage() {
                 <p><span className="text-slate-400">Email:</span> <span className="text-slate-200">{user?.email || mockAdminUser.email}</span></p>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setStaffModalDefaultRole('admin');
+                    setStaffModalDefaultDeptId(undefined);
+                    setIsAddStaffOpen(true);
+                  }}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 text-xs rounded-lg"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1 text-amber-300" /> + New Admin
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -409,38 +510,182 @@ export default function AdminPortalPage() {
           )}
 
           {/* System Overview Metrics */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-4.5 rounded-xl border border-slate-200 border-l-4 border-l-blue-900 shadow-xs">
-              <div className="text-xs font-bold text-slate-600 flex items-center gap-1.5 uppercase tracking-wider">
-                <Building2 className="w-4 h-4 text-blue-900" /> Departments
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 border-l-4 border-l-blue-950 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1 uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-900" /> System Admins
               </div>
-              <div className="text-2xl font-bold text-slate-950 mt-1.5">{stats.totalDepartments}</div>
-              <div className="text-[11px] text-slate-500 mt-1 font-medium">Academic Divisions</div>
+              <div className="text-2xl font-bold text-slate-950 mt-1">{adminCount}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5 font-medium">Co-Administrators</div>
             </div>
 
-            <div className="bg-white p-4.5 rounded-xl border border-slate-200 border-l-4 border-l-indigo-900 shadow-xs">
-              <div className="text-xs font-bold text-slate-600 flex items-center gap-1.5 uppercase tracking-wider">
-                <UserCheck className="w-4 h-4 text-indigo-900" /> Total HODs
+            <div className="bg-white p-4 rounded-xl border border-slate-200 border-l-4 border-l-blue-900 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1 uppercase tracking-wider">
+                <Building2 className="w-3.5 h-3.5 text-blue-900" /> Departments
               </div>
-              <div className="text-2xl font-bold text-slate-950 mt-1.5">{stats.totalHods}</div>
-              <div className="text-[11px] text-slate-500 mt-1 font-medium">Department Heads</div>
+              <div className="text-2xl font-bold text-slate-950 mt-1">{stats.totalDepartments}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5 font-medium">Academic Divisions</div>
             </div>
 
-            <div className="bg-white p-4.5 rounded-xl border border-slate-200 border-l-4 border-l-slate-800 shadow-xs">
-              <div className="text-xs font-bold text-slate-600 flex items-center gap-1.5 uppercase tracking-wider">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 border-l-4 border-l-indigo-900 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1 uppercase tracking-wider">
+                <UserCheck className="w-3.5 h-3.5 text-indigo-900" /> Total HODs
+              </div>
+              <div className="text-2xl font-bold text-slate-950 mt-1">{stats.totalHods}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5 font-medium">Department Heads</div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 border-l-4 border-l-slate-800 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1 uppercase tracking-wider">
                 <Users className="w-4 h-4 text-slate-800" /> Total Faculty
               </div>
-              <div className="text-2xl font-bold text-slate-950 mt-1.5">{stats.totalFaculty}</div>
-              <div className="text-[11px] text-slate-500 mt-1 font-medium">Teaching Personnel</div>
+              <div className="text-2xl font-bold text-slate-950 mt-1">{stats.totalFaculty}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5 font-medium">Teaching Personnel</div>
             </div>
 
-            <div className="bg-white p-4.5 rounded-xl border border-slate-200 border-l-4 border-l-emerald-700 shadow-xs">
-              <div className="text-xs font-bold text-slate-600 flex items-center gap-1.5 uppercase tracking-wider">
-                <FileCheck className="w-4 h-4 text-emerald-700" /> Leaves Today
+            <div className="bg-white p-4 rounded-xl border border-slate-200 border-l-4 border-l-emerald-700 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1 uppercase tracking-wider">
+                <FileCheck className="w-3.5 h-3.5 text-emerald-700" /> Leaves Today
               </div>
-              <div className="text-2xl font-bold text-slate-950 mt-1.5">{stats.activeLeavesToday}</div>
-              <div className="text-[11px] text-slate-500 mt-1 font-medium">Sanctioned &amp; Active</div>
+              <div className="text-2xl font-bold text-slate-950 mt-1">{stats.activeLeavesToday}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5 font-medium">Sanctioned &amp; Active</div>
             </div>
+          </div>
+
+          {/* University System Administrators Directory & Governance */}
+          <div id="administrators">
+            <Card
+              title="University System Administrators & Multi-Admin Governance"
+              subtitle="All authorized system administrators with central governance, staff provisioning, and leave policy authority"
+              action={
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenPromoteModal()}
+                    className="text-xs rounded-lg border-blue-300 text-blue-900 hover:bg-blue-50"
+                  >
+                    <UserPlus className="w-3.5 h-3.5 mr-1 text-blue-900" /> Promote Existing Member
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      setStaffModalDefaultRole('admin');
+                      setStaffModalDefaultDeptId(undefined);
+                      setIsAddStaffOpen(true);
+                    }}
+                    className="bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-lg shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add New Administrator
+                  </Button>
+                </div>
+              }
+            >
+              <div className="space-y-4">
+                {loading ? (
+                  <div className="py-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-900" />
+                    <span>Loading authorized administrators...</span>
+                  </div>
+                ) : administrators.length === 0 ? (
+                  <div className="py-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 p-4 space-y-2">
+                    <Shield className="w-6 h-6 text-slate-400 mx-auto" />
+                    <p className="text-xs font-semibold text-slate-700">No additional administrators found.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {administrators.map((admin) => {
+                      const isCurrentUser = admin.id === user?.id || admin.email === user?.email;
+                      return (
+                        <div
+                          key={admin.id}
+                          className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
+                            isCurrentUser
+                              ? 'bg-blue-50/60 border-blue-300 shadow-xs ring-1 ring-blue-900/10'
+                              : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-blue-950 text-amber-400 flex items-center justify-center font-bold shadow-2xs shrink-0">
+                                  <Shield className="w-5 h-5 text-amber-300" />
+                                </div>
+                                <div className="truncate">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-900 text-xs truncate" title={admin.name}>
+                                      {admin.name}
+                                    </span>
+                                    {isCurrentUser && (
+                                      <span className="text-[9px] font-bold bg-blue-100 text-blue-900 px-1.5 py-0.2 rounded border border-blue-200">
+                                        You
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-blue-900 font-semibold block truncate">
+                                    {admin.designation}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-[9px] font-mono font-bold bg-slate-900 text-amber-300 px-1.5 py-0.5 rounded shrink-0">
+                                ADMIN
+                              </span>
+                            </div>
+
+                            <div className="mt-2.5 space-y-1.5 text-xs text-slate-700">
+                              <div className="flex justify-between items-center text-[11px]">
+                                <span className="text-slate-500">Employee ID:</span>
+                                <span className="font-mono font-bold text-slate-900">{admin.employee_id}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[11px]">
+                                <span className="text-slate-500">Official Email:</span>
+                                <span className="font-mono text-slate-800 truncate max-w-[170px]" title={admin.email}>
+                                  {admin.email}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-[11px]">
+                                <span className="text-slate-500">Unit:</span>
+                                <span className="font-semibold text-slate-800 truncate max-w-[170px]">
+                                  {admin.department_name}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1">
+                                <span>Appointed on:</span>
+                                <span>{new Date(admin.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                            <span className="text-emerald-700 font-bold flex items-center gap-1 text-[10px]">
+                              <ShieldCheck className="w-3 h-3 text-emerald-600" /> Full Authority
+                            </span>
+                            {!isCurrentUser && administrators.length > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTargetRevokeAdmin(admin);
+                                  setRevokeAdminError(null);
+                                  setIsRevokeAdminModalOpen(true);
+                                }}
+                                className="text-rose-700 hover:text-rose-900 font-bold hover:underline cursor-pointer text-[11px]"
+                              >
+                                Revoke Privileges
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">
+                                {isCurrentUser ? 'Active Session' : 'Primary Admin'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
 
           {/* University Departments Directory */}
@@ -625,6 +870,17 @@ export default function AdminPortalPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setStaffRoleFilter('admin')}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        staffRoleFilter === 'admin'
+                          ? 'bg-blue-950 text-white border-blue-950 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      Admins Only ({adminCount})
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setStaffRoleFilter('hod')}
                       className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                         staffRoleFilter === 'hod'
@@ -709,15 +965,15 @@ export default function AdminPortalPage() {
                             <td className="py-3 px-3.5">
                               <span
                                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full border ${
-                                  member.role === 'hod'
+                                  member.role === 'admin'
+                                    ? 'bg-blue-950 text-amber-300 border-amber-400/50 shadow-2xs'
+                                    : member.role === 'hod'
                                     ? 'bg-indigo-100/90 text-indigo-950 border-indigo-400'
-                                    : member.role === 'admin'
-                                    ? 'bg-rose-100/90 text-rose-950 border-rose-400'
                                     : 'bg-emerald-100/90 text-emerald-950 border-emerald-400'
                                 }`}
                               >
-                                {member.role === 'admin' && <Shield className="w-2.5 h-2.5" />}
-                                {member.role.toUpperCase()}
+                                {member.role === 'admin' && <Shield className="w-2.5 h-2.5 text-amber-300" />}
+                                {member.role === 'admin' ? 'SYSTEM ADMIN' : member.role.toUpperCase()}
                               </span>
                             </td>
                             <td className="py-3 px-3.5 text-slate-800 font-medium">
@@ -729,7 +985,32 @@ export default function AdminPortalPage() {
                             <td className="py-3 px-3.5 font-mono text-xs text-slate-600 font-medium">
                               {member.email}
                             </td>
-                            <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                            <td className="py-3 px-3.5 text-right whitespace-nowrap space-x-1.5">
+                              {member.role !== 'admin' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPromoteModal(member)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-amber-900 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md transition-colors cursor-pointer shadow-2xs"
+                                  title="Promote this member to System Administrator"
+                                >
+                                  <ShieldCheck className="w-3 h-3 text-amber-700" />
+                                  <span>Make Admin</span>
+                                </button>
+                              ) : member.id !== user?.id && administrators.length > 1 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTargetRevokeAdmin(member);
+                                    setRevokeAdminError(null);
+                                    setIsRevokeAdminModalOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-rose-800 hover:text-rose-950 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-md transition-colors cursor-pointer shadow-2xs"
+                                  title="Revoke administrator privileges"
+                                >
+                                  <ShieldAlert className="w-3 h-3 text-rose-600" />
+                                  <span>Revoke</span>
+                                </button>
+                              ) : null}
                               <button
                                 type="button"
                                 onClick={() => handleOpenResetModal(member)}
@@ -1039,6 +1320,177 @@ export default function AdminPortalPage() {
                 <>
                   <KeyRound className="w-3.5 h-3.5 mr-1.5" /> Confirm Password Reset
                 </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Promote Staff Member to System Administrator Modal */}
+      <Modal
+        isOpen={isPromoteAdminModalOpen}
+        onClose={() => setIsPromoteAdminModalOpen(false)}
+        title="Promote Member to System Administrator"
+        subtitle="Grant full executive governance and system administration authority to an existing staff member"
+      >
+        <form onSubmit={handleConfirmPromoteAdmin} className="space-y-4">
+          {promoteAdminError && (
+            <div className="p-3 bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-start gap-2 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{promoteAdminError}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+              Select Staff Member to Promote <span className="text-rose-600">*</span>
+            </label>
+            <select
+              value={selectedPromoteCandidateId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedPromoteCandidateId(id);
+                const cand = staffMembers.find((m) => m.id === id);
+                setTargetPromoteStaff(cand || null);
+                if (cand) {
+                  setPromoteDesignation(
+                    cand.designation ? `${cand.designation} & Administrator` : 'System Administrator'
+                  );
+                }
+              }}
+              required
+              disabled={promotingAdmin}
+              className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 font-medium shadow-2xs"
+            >
+              <option value="">-- Choose an Existing Staff Member --</option>
+              {nonAdminCandidates.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.employee_id}) — {m.role.toUpperCase()} in {m.department_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {targetPromoteStaff && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Current Role:</span>
+                <span className="font-bold text-slate-900 uppercase">{targetPromoteStaff.role}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Current Department:</span>
+                <span className="font-semibold text-slate-900">{targetPromoteStaff.department_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Institutional Email:</span>
+                <span className="font-mono text-slate-800">{targetPromoteStaff.email}</span>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+              Administrative Designation / Title <span className="text-rose-600">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Professor & Joint Administrator or Dean of Academic Affairs"
+              value={promoteDesignation}
+              onChange={(e) => setPromoteDesignation(e.target.value)}
+              disabled={promotingAdmin}
+              className="w-full py-2.5 px-3.5 text-xs border border-slate-300 focus:outline-none focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-lg bg-white text-slate-900 font-medium shadow-2xs"
+            />
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-950 text-xs flex items-start gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+            <p className="text-[11px] leading-relaxed">
+              <strong>Institutional Authority:</strong> Granting System Administrator privileges allows this user full authority to manage all university departments, staff profiles, HOD appointments, password resets, and university leave policies.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPromoteAdminModalOpen(false)}
+              disabled={promotingAdmin}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              disabled={promotingAdmin || !selectedPromoteCandidateId}
+              className="bg-blue-900 hover:bg-blue-950 text-white font-bold"
+            >
+              {promotingAdmin ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Promoting...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Grant Admin Privileges
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Revoke Admin Access Modal */}
+      <Modal
+        isOpen={isRevokeAdminModalOpen}
+        onClose={() => setIsRevokeAdminModalOpen(false)}
+        title="Revoke System Administrator Access"
+        subtitle={`Demote ${targetRevokeAdmin?.name || 'Administrator'} back to faculty status`}
+      >
+        <form onSubmit={handleConfirmRevokeAdmin} className="space-y-4">
+          {revokeAdminError && (
+            <div className="p-3 bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-start gap-2 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{revokeAdminError}</span>
+            </div>
+          )}
+
+          <p className="text-xs text-slate-700 leading-relaxed">
+            Are you sure you want to revoke System Administrator privileges from{' '}
+            <strong>{targetRevokeAdmin?.name}</strong> (<span className="font-mono text-slate-900">{targetRevokeAdmin?.email}</span>)?
+          </p>
+
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-900 text-xs rounded-xl flex items-start gap-2">
+            <ShieldAlert className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+            <span className="text-[11px] leading-relaxed">
+              This user will lose central administration access immediately and be converted back to a regular Faculty member.
+            </span>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsRevokeAdminModalOpen(false)}
+              disabled={revokingAdmin}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="danger"
+              size="sm"
+              disabled={revokingAdmin}
+              className="bg-rose-700 hover:bg-rose-800 text-white font-bold"
+            >
+              {revokingAdmin ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Revoking...
+                </>
+              ) : (
+                'Confirm Revoke Privileges'
               )}
             </Button>
           </div>
