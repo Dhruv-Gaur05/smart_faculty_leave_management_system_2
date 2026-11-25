@@ -1,0 +1,47 @@
+[
+  {
+    "id": "fac-001",
+    "employee_id": "BTU-FAC-2024-001",
+    "name": "Dr. Rajesh Sharma",
+    "email": "faculty@btu.ac.in",
+    "role": "faculty",
+    "department_id": "dept-cse",
+    "designation": "Associate Professor",
+    "phone": "+91 98290 12345",
+    "room_number": "Academic Block-B, Room 204",
+    "emergency_contact": "+91 98290 54321",
+    "avatar_url": "",
+    "signature_url": "",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "hod-001",
+    "employee_id": "BTU-HOD-CSE-001",
+    "name": "Prof. Ananya Sen",
+    "email": "hod@btu.ac.in",
+    "role": "hod",
+    "department_id": "dept-cse",
+    "designation": "Head of Department (CSE)",
+    "phone": "+91 94140 67890",
+    "room_number": "Dean Block, HOD Office 101",
+    "emergency_contact": "+91 94140 09876",
+    "avatar_url": "",
+    "signature_url": "",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "admin-001",
+    "employee_id": "BTU-ADM-001",
+    "name": "Dr. Sunita Verma",
+    "email": "admin@btu.ac.in",
+    "role": "admin",
+    "department_id": "dept-admin",
+    "designation": "Registrar & Academic Administrator",
+    "phone": "+91 94141 11223",
+    "room_number": "Administrative Wing, Room 01",
+    "emergency_contact": "+91 94141 33221",
+    "avatar_url": "",
+    "signature_url": "",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  }
+]

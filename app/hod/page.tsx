@@ -6,6 +6,9 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { CreateStaffModal } from '@/components/users/CreateStaffModal';
+import { LeaveReportManager } from '@/components/reports/LeaveReportManager';
+import { LeaveSanctionOrderModal } from '@/components/leave/LeaveSanctionOrderModal';
+import { PrintablePassSlipModal } from '@/components/leave/PrintablePassSlipModal';
 import { LeaveRequest } from '@/types';
 import {
   CheckCircle2,
@@ -21,7 +24,8 @@ import {
   AlertCircle,
   KeyRound,
   FileText,
-  MessageSquare
+  MessageSquare,
+  Printer
 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -84,6 +88,9 @@ export default function HodPortalPage() {
 
   // Add Faculty Modal
   const [isAddFacultyOpen, setIsAddFacultyOpen] = useState(false);
+  const [selectedSlipItem, setSelectedSlipItem] = useState<LeaveRequest | null>(null);
+  const [isSanctionSlipOpen, setIsSanctionSlipOpen] = useState(false);
+  const [isPassSlipOpen, setIsPassSlipOpen] = useState(false);
 
   const hodDisplayName = profile?.name || mockHodUser.name;
   const hodDisplayDesig = profile?.designation || mockHodUser.designation;
@@ -534,7 +541,33 @@ export default function HodPortalPage() {
                         </div>
                       ) : null}
 
-                      {/* Decision Action Bar */}
+                      {/* Reviewed / Approved Actions */}
+                      {item.status === 'Approved' && (
+                        <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedSlipItem(item);
+                              setIsSanctionSlipOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                            Official Sanction Slip
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedSlipItem(item);
+                              setIsPassSlipOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-blue-700" />
+                            Gate Movement Pass
+                          </button>
+                        </div>
+                      )}
                       {(item.status === 'Pending HOD' || item.status === 'Clarification Requested') && (
                         <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <input
@@ -672,6 +705,14 @@ export default function HodPortalPage() {
               )}
             </Card>
           </div>
+
+          {/* Department Leave Reports & Audited Statements */}
+          <div id="reports">
+            <LeaveReportManager
+              initialDepartment={hodDisplayDept}
+              isHodScope={true}
+            />
+          </div>
         </div>
       </div>
 
@@ -693,6 +734,63 @@ export default function HodPortalPage() {
             : null
         }
       />
+
+      {/* Sanction Slip Modal */}
+      {selectedSlipItem && (
+        <LeaveSanctionOrderModal
+          isOpen={isSanctionSlipOpen}
+          onClose={() => {
+            setIsSanctionSlipOpen(false);
+            setSelectedSlipItem(null);
+          }}
+          leave={{
+            id: selectedSlipItem.id,
+            facultyName: selectedSlipItem.facultyName,
+            employeeId: selectedSlipItem.employeeId,
+            designation: selectedSlipItem.designation,
+            department: selectedSlipItem.department,
+            leaveType: selectedSlipItem.leaveType,
+            startDate: selectedSlipItem.startDate,
+            endDate: selectedSlipItem.endDate,
+            totalDays: selectedSlipItem.totalDays,
+            reason: selectedSlipItem.reason,
+            status: selectedSlipItem.status,
+            appliedOn: selectedSlipItem.appliedOn,
+            hodComment: selectedSlipItem.hodComment,
+            contactDuringLeave: selectedSlipItem.contactDuringLeave,
+            approvalsHistory: selectedSlipItem.approvalsHistory,
+            hodSignatureUrl: profile?.signature_url || undefined,
+          }}
+        />
+      )}
+
+      {/* Gate Pass Modal */}
+      {selectedSlipItem && (
+        <PrintablePassSlipModal
+          isOpen={isPassSlipOpen}
+          onClose={() => {
+            setIsPassSlipOpen(false);
+            setSelectedSlipItem(null);
+          }}
+          leave={{
+            id: selectedSlipItem.id,
+            facultyName: selectedSlipItem.facultyName,
+            employeeId: selectedSlipItem.employeeId,
+            designation: selectedSlipItem.designation,
+            department: selectedSlipItem.department,
+            leaveType: selectedSlipItem.leaveType,
+            startDate: selectedSlipItem.startDate,
+            endDate: selectedSlipItem.endDate,
+            totalDays: selectedSlipItem.totalDays,
+            reason: selectedSlipItem.reason,
+            status: selectedSlipItem.status,
+            appliedOn: selectedSlipItem.appliedOn,
+            hodComment: selectedSlipItem.hodComment,
+            contactDuringLeave: selectedSlipItem.contactDuringLeave,
+            hodSignatureUrl: profile?.signature_url || undefined,
+          }}
+        />
+      )}
     </ProtectedRoute>
   );
 }

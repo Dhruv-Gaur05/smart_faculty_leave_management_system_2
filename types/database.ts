@@ -18,6 +18,11 @@ export interface Profile {
   department_id: string | null;
   designation: string;
   role: UserRole;
+  phone?: string | null;
+  avatar_url?: string | null;
+  signature_url?: string | null;
+  room_number?: string | null;
+  emergency_contact?: string | null;
   created_at: string;
 }
 

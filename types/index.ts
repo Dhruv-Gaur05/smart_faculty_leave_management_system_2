@@ -13,6 +13,8 @@ export type LeaveStatus =
   | 'Rejected'
   | 'Clarification Requested';
 
+export type LeaveApplicationStatus = 'pending' | 'approved' | 'rejected' | 'clarification';
+
 export interface User {
   id: string;
   name: string;
@@ -22,6 +24,10 @@ export interface User {
   designation: string;
   employeeId: string;
   phone?: string;
+  avatarUrl?: string;
+  signatureUrl?: string;
+  roomNumber?: string;
+  emergencyContact?: string;
   joiningDate?: string;
 }
 
@@ -40,6 +46,7 @@ export interface LeaveRequest {
   status: LeaveStatus;
   appliedOn: string;
   hodComment?: string;
+  contactDuringLeave?: string;
   documentUrl?: string;
   clarificationResponse?: string;
   approvalsHistory?: Array<{
@@ -118,4 +125,63 @@ export interface NotificationItem {
   isRead: boolean;
   createdAt: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface LeaveReportFilter {
+  year?: string;
+  month?: string; // "all" or "01" - "12"
+  departmentId?: string;
+  leaveTypeId?: string;
+  status?: string;
+}
+
+export interface LeaveReportStats {
+  totalApplications: number;
+  approvedCount: number;
+  rejectedCount: number;
+  pendingCount: number;
+  clarificationCount: number;
+  totalLeaveDays: number;
+  totalWorkingDays: number;
+  categoryBreakdown: Record<string, number>;
+  departmentBreakdown: Record<string, number>;
+}
+
+export interface LeaveReportRecord {
+  id: string;
+  applicationId: string;
+  facultyName: string;
+  employeeId: string;
+  department: string;
+  designation: string;
+  leaveType: string;
+  fromDate: string;
+  toDate: string;
+  totalDays: number;
+  workingDays: number;
+  status: LeaveApplicationStatus;
+  sanctionedBy?: string;
+  reason: string;
+  appliedDate: string;
+  contactDuringLeave?: string;
+}
+
+export interface GatePassInfo {
+  passNumber: string;
+  applicationId: string;
+  facultyName: string;
+  employeeId: string;
+  designation: string;
+  department: string;
+  phone?: string;
+  avatarUrl?: string;
+  leaveType: string;
+  departureDate: string;
+  expectedReturnDate: string;
+  totalDays: number;
+  reason: string;
+  sanctionedBy: string;
+  sanctionedDate: string;
+  hodSignatureUrl?: string;
+  facultySignatureUrl?: string;
 }

@@ -17,6 +17,7 @@ import {
 } from '@/lib/supabase/faculty';
 import { LeaveTypeRow } from '@/types/database';
 import { LeaveSanctionOrderModal } from '@/components/leave/LeaveSanctionOrderModal';
+import { PrintablePassSlipModal } from '@/components/leave/PrintablePassSlipModal';
 import {
   FileText,
   PlusSquare,
@@ -40,6 +41,7 @@ export default function FacultyApplicationsPage() {
   const [errorState, setErrorState] = useState<string | null>(null);
   const [departmentName, setDepartmentName] = useState('Computer Science & Engineering');
   const [isSanctionSlipOpen, setIsSanctionSlipOpen] = useState(false);
+  const [isPassSlipOpen, setIsPassSlipOpen] = useState(false);
   const [selectedSanctionApp, setSelectedSanctionApp] = useState<DetailedLeaveApplication | null>(null);
 
   // Search & Filter State
@@ -222,8 +224,8 @@ export default function FacultyApplicationsPage() {
             <button
               onClick={() => setStatusFilter('all')}
               className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'all'
-                  ? 'bg-blue-900 text-white border-blue-900 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
+                ? 'bg-blue-900 text-white border-blue-900 shadow-sm'
+                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
                 }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'all' ? 'text-blue-100' : 'text-slate-600'}`}>
@@ -235,8 +237,8 @@ export default function FacultyApplicationsPage() {
             <button
               onClick={() => setStatusFilter('pending')}
               className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'pending'
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
+                ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
                 }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'pending' ? 'text-amber-100' : 'text-amber-800 font-bold'}`}>
@@ -248,8 +250,8 @@ export default function FacultyApplicationsPage() {
             <button
               onClick={() => setStatusFilter('approved')}
               className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'approved'
-                  ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
+                ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
                 }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'approved' ? 'text-emerald-100' : 'text-emerald-800 font-bold'}`}>
@@ -261,8 +263,8 @@ export default function FacultyApplicationsPage() {
             <button
               onClick={() => setStatusFilter('rejected')}
               className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'rejected'
-                  ? 'bg-rose-700 text-white border-rose-700 shadow-sm'
-                  : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
+                ? 'bg-rose-700 text-white border-rose-700 shadow-sm'
+                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
                 }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'rejected' ? 'text-rose-100' : 'text-rose-800 font-bold'}`}>
@@ -295,8 +297,8 @@ export default function FacultyApplicationsPage() {
                     type="button"
                     onClick={() => setCategoryFilter(isSelected ? 'all' : (b.id || b.type))}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${isSelected
-                        ? 'bg-blue-50/90 border-blue-900 ring-2 ring-blue-900/20 shadow-xs'
-                        : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/70'
+                      ? 'bg-blue-50/90 border-blue-900 ring-2 ring-blue-900/20 shadow-xs'
+                      : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/70'
                       }`}
                   >
                     <div>
@@ -487,17 +489,31 @@ export default function FacultyApplicationsPage() {
                         <td className="py-3 px-3.5 text-right">
                           <div className="flex items-center justify-end space-x-2">
                             {app.status === 'approved' && (
-                              <button
-                                onClick={() => {
-                                  setSelectedSanctionApp(app);
-                                  setIsSanctionSlipOpen(true);
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold rounded-lg text-xs shadow-2xs transition-colors shrink-0 cursor-pointer"
-                                title="Download Official Sanction Slip"
-                              >
-                                <FileText className="w-3 h-3 text-emerald-700" />
-                                Sanction Slip
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSanctionApp(app);
+                                    setIsSanctionSlipOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold rounded-lg text-xs shadow-2xs transition-colors shrink-0 cursor-pointer"
+                                  title="Download Official Sanction Slip"
+                                >
+                                  <FileText className="w-3 h-3 text-emerald-700" />
+                                  Sanction Slip
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSanctionApp(app);
+                                    setIsPassSlipOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-300 font-bold rounded-lg text-xs shadow-2xs transition-colors shrink-0 cursor-pointer"
+                                  title="Print Campus Movement Gate Pass Slip"
+                                >
+                                  Gate Pass
+                                </button>
+                              </>
                             )}
                             {app.status === 'clarification' ? (
                               <Link
@@ -527,29 +543,57 @@ export default function FacultyApplicationsPage() {
         </div>
 
         {selectedSanctionApp && (
-          <LeaveSanctionOrderModal
-            isOpen={isSanctionSlipOpen}
-            onClose={() => {
-              setIsSanctionSlipOpen(false);
-              setSelectedSanctionApp(null);
-            }}
-            leave={{
-              id: selectedSanctionApp.id,
-              facultyName: profile?.name || user?.email?.split('@')[0],
-              employeeId: profile?.employee_id,
-              designation: profile?.designation,
-              department: departmentName,
-              leaveType: selectedSanctionApp.leave_type?.name || 'Leave',
-              startDate: selectedSanctionApp.from_date,
-              endDate: selectedSanctionApp.to_date,
-              totalDays: Number(selectedSanctionApp.days) || 1,
-              reason: selectedSanctionApp.reason,
-              status: selectedSanctionApp.status,
-              appliedOn: selectedSanctionApp.submitted_at,
-              contactDuringLeave: selectedSanctionApp.contact_during_leave || undefined,
-              approvalsHistory: selectedSanctionApp.approvals,
-            }}
-          />
+          <>
+            <LeaveSanctionOrderModal
+              isOpen={isSanctionSlipOpen}
+              onClose={() => {
+                setIsSanctionSlipOpen(false);
+                setSelectedSanctionApp(null);
+              }}
+              leave={{
+                id: selectedSanctionApp.id,
+                facultyName: profile?.name || user?.email?.split('@')[0],
+                employeeId: profile?.employee_id,
+                designation: profile?.designation,
+                department: departmentName,
+                leaveType: selectedSanctionApp.leave_type?.name || 'Leave',
+                startDate: selectedSanctionApp.from_date,
+                endDate: selectedSanctionApp.to_date,
+                totalDays: Number(selectedSanctionApp.days) || 1,
+                reason: selectedSanctionApp.reason,
+                status: selectedSanctionApp.status,
+                appliedOn: selectedSanctionApp.submitted_at,
+                contactDuringLeave: selectedSanctionApp.contact_during_leave || undefined,
+                approvalsHistory: selectedSanctionApp.approvals,
+                facultySignatureUrl: profile?.signature_url || undefined,
+              }}
+            />
+
+            <PrintablePassSlipModal
+              isOpen={isPassSlipOpen}
+              onClose={() => {
+                setIsPassSlipOpen(false);
+                setSelectedSanctionApp(null);
+              }}
+              leave={{
+                id: selectedSanctionApp.id,
+                facultyName: profile?.name || user?.email?.split('@')[0],
+                employeeId: profile?.employee_id,
+                designation: profile?.designation,
+                department: departmentName,
+                leaveType: selectedSanctionApp.leave_type?.name || 'Leave',
+                startDate: selectedSanctionApp.from_date,
+                endDate: selectedSanctionApp.to_date,
+                totalDays: Number(selectedSanctionApp.days) || 1,
+                reason: selectedSanctionApp.reason,
+                status: selectedSanctionApp.status,
+                appliedOn: selectedSanctionApp.submitted_at,
+                contactDuringLeave: selectedSanctionApp.contact_during_leave || undefined,
+                avatarUrl: profile?.avatar_url || undefined,
+                facultySignatureUrl: profile?.signature_url || undefined,
+              }}
+            />
+          </>
         )}
       </div>
     </ProtectedRoute>

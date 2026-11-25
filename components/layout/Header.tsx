@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { NotificationBell } from '@/components/layout/NotificationBell';
+import { ProfileModal } from '@/components/profile/ProfileModal';
 import {
   GraduationCap,
   Menu,
@@ -14,7 +15,8 @@ import {
   LayoutDashboard,
   LogIn,
   LogOut,
-  User
+  User,
+  PenTool
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -22,6 +24,7 @@ export const Header: React.FC = () => {
   const router = useRouter();
   const { user, profile, role, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const getDashboardPath = () => {
     switch (role) {
@@ -131,6 +134,15 @@ export const Header: React.FC = () => {
                 </span>
               </Link>
               <button
+                type="button"
+                onClick={() => setProfileModalOpen(true)}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white border border-slate-700/80 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                title="Edit Profile, Contact & Digital Signature"
+              >
+                <PenTool className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden xl:inline">Profile &amp; Sign</span>
+              </button>
+              <button
                 onClick={handleLogout}
                 className="flex items-center space-x-1 px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900 text-rose-200 hover:text-white text-xs font-medium border border-rose-800/60 rounded-lg transition-colors cursor-pointer"
                 title="Sign out of portal"
@@ -185,18 +197,30 @@ export const Header: React.FC = () => {
             );
           })}
 
-          <div className="pt-2 border-t border-slate-800">
+          <div className="pt-2 border-t border-slate-800 space-y-2">
             {user ? (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleLogout();
-                }}
-                className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-rose-900 text-white text-xs font-bold uppercase"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out ({profile?.name || user.email})</span>
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setProfileModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold uppercase rounded-lg border border-slate-700"
+                >
+                  <PenTool className="w-4 h-4" />
+                  <span>Profile &amp; Digital Signature</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-rose-900 text-white text-xs font-bold uppercase rounded-lg"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out ({profile?.name || user.email})</span>
+                </button>
+              </>
             ) : (
               <Link
                 href="/login"
@@ -210,6 +234,16 @@ export const Header: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Profile & Signature Modal */}
+      <ProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        onProfileUpdated={() => {
+          // Trigger route refresh to reflect profile changes if needed
+          router.refresh();
+        }}
+      />
     </header>
   );
 };

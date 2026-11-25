@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LeaveSanctionOrderModal } from '@/components/leave/LeaveSanctionOrderModal';
+import { PrintablePassSlipModal } from '@/components/leave/PrintablePassSlipModal';
 import {
   getFacultyApplicationById,
   getFacultyProfile,
@@ -46,6 +47,7 @@ export default function FacultyApplicationDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState<string | null>(null);
   const [isSanctionSlipOpen, setIsSanctionSlipOpen] = useState(false);
+  const [isPassSlipOpen, setIsPassSlipOpen] = useState(false);
 
   // Clarification Response State
   const [clarificationMessage, setClarificationMessage] = useState('');
@@ -184,23 +186,35 @@ export default function FacultyApplicationDetailsPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {application?.status === 'approved' && (
+                <>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setIsSanctionSlipOpen(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 text-xs font-semibold rounded-lg flex items-center shadow-sm"
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-1" /> Sanction Slip
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setIsPassSlipOpen(true)}
+                    className="bg-blue-700 hover:bg-blue-800 text-white border-blue-600 text-xs font-semibold rounded-lg flex items-center shadow-sm"
+                  >
+                    <Printer className="w-3.5 h-3.5 mr-1" /> Campus Gate Pass
+                  </Button>
+                </>
+              )}
+              {application?.status !== 'approved' && (
                 <Button
-                  variant="primary"
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsSanctionSlipOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 text-xs font-semibold rounded-lg flex items-center shadow-sm"
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 text-xs font-semibold rounded-lg"
                 >
-                  <FileText className="w-3.5 h-3.5 mr-1" /> Official Sanction Order (PDF)
+                  <Printer className="w-3.5 h-3.5 mr-1" /> Print Slip
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSanctionSlipOpen(true)}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/30 text-xs font-semibold rounded-lg"
-              >
-                <Printer className="w-3.5 h-3.5 mr-1" /> Print Slip
-              </Button>
             </div>
           </div>
 
@@ -491,27 +505,53 @@ export default function FacultyApplicationDetailsPage() {
         </div>
 
         {application && (
-          <LeaveSanctionOrderModal
-            isOpen={isSanctionSlipOpen}
-            onClose={() => setIsSanctionSlipOpen(false)}
-            leave={{
-              id: application.id,
-              facultyName: facultyDisplayName,
-              employeeId: profile?.employee_id,
-              designation: facultyDesignation,
-              department: departmentName,
-              leaveType: application.leave_type?.name || 'Leave',
-              startDate: application.from_date,
-              endDate: application.to_date,
-              totalDays: Number(application.days) || 1,
-              reason: application.reason,
-              status: application.status,
-              appliedOn: application.submitted_at,
-              hodComment: latestHodRemark,
-              contactDuringLeave: application.contact_during_leave || undefined,
-              approvalsHistory: application.approvals,
-            }}
-          />
+          <>
+            <LeaveSanctionOrderModal
+              isOpen={isSanctionSlipOpen}
+              onClose={() => setIsSanctionSlipOpen(false)}
+              leave={{
+                id: application.id,
+                facultyName: facultyDisplayName,
+                employeeId: profile?.employee_id,
+                designation: facultyDesignation,
+                department: departmentName,
+                leaveType: application.leave_type?.name || 'Leave',
+                startDate: application.from_date,
+                endDate: application.to_date,
+                totalDays: Number(application.days) || 1,
+                reason: application.reason,
+                status: application.status,
+                appliedOn: application.submitted_at,
+                hodComment: latestHodRemark,
+                contactDuringLeave: application.contact_during_leave || undefined,
+                approvalsHistory: application.approvals,
+                facultySignatureUrl: profile?.signature_url || undefined,
+              }}
+            />
+
+            <PrintablePassSlipModal
+              isOpen={isPassSlipOpen}
+              onClose={() => setIsPassSlipOpen(false)}
+              leave={{
+                id: application.id,
+                facultyName: facultyDisplayName,
+                employeeId: profile?.employee_id,
+                designation: facultyDesignation,
+                department: departmentName,
+                leaveType: application.leave_type?.name || 'Leave',
+                startDate: application.from_date,
+                endDate: application.to_date,
+                totalDays: Number(application.days) || 1,
+                reason: application.reason,
+                status: application.status,
+                appliedOn: application.submitted_at,
+                hodComment: latestHodRemark,
+                contactDuringLeave: application.contact_during_leave || undefined,
+                avatarUrl: profile?.avatar_url || undefined,
+                facultySignatureUrl: profile?.signature_url || undefined,
+              }}
+            />
+          </>
         )}
       </div>
     </ProtectedRoute>

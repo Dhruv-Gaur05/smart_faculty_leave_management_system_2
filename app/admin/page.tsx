@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { CreateStaffModal } from '@/components/users/CreateStaffModal';
 import { AcademicCalendarManager } from '@/components/admin/AcademicCalendarManager';
+import { LeaveReportManager } from '@/components/reports/LeaveReportManager';
 import { DepartmentSummary } from '@/types';
 import {
   Building2,
@@ -839,6 +840,11 @@ export default function AdminPortalPage() {
           {/* Academic Calendar & Declared Public Holidays */}
           <div id="calendar">
             <AcademicCalendarManager />
+          </div>
+
+          {/* Monthly & Annual Faculty Leave Reports */}
+          <div id="reports">
+            <LeaveReportManager />
           </div>
 
           {/* Complete University Staff Directory (ALL HODs & Faculty Members) */}

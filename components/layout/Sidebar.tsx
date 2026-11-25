@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRole } from '@/types';
+import { ProfileModal } from '@/components/profile/ProfileModal';
 import {
   FileText,
   PlusSquare,
@@ -15,7 +16,9 @@ import {
   Shield,
   ShieldCheck,
   Calendar,
-  Clock
+  Clock,
+  PenTool,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   designation = 'Academic Staff',
 }) => {
   const pathname = usePathname();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   let roleItems = [
     { name: 'Dashboard Overview', href: '/faculty/dashboard', icon: PieChart },
@@ -44,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { name: 'HOD Overview', href: '/hod/dashboard', icon: PieChart },
       { name: 'Pending Approvals', href: '/hod#approvals', icon: CheckSquare },
       { name: 'Department Faculty', href: '/hod#faculty', icon: Users },
-      { name: 'Leave Records', href: '/hod#records', icon: FileText },
+      { name: 'Leave Reports & Export', href: '/hod#reports', icon: FileSpreadsheet },
     ];
   } else if (role === 'admin') {
     roleItems = [
@@ -52,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { name: 'System Administrators', href: '/admin#administrators', icon: ShieldCheck },
       { name: 'Manage Departments', href: '/admin#departments', icon: Building2 },
       { name: 'Academic Calendar', href: '/admin#calendar', icon: Calendar },
+      { name: 'Leave Reports & Export', href: '/admin#reports', icon: FileSpreadsheet },
       { name: 'Faculty Directory', href: '/admin#directory', icon: Users },
       { name: 'Portal Logs & Audit', href: '/admin#audit', icon: FileText },
     ];
@@ -81,6 +86,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="text-[10px] text-slate-600 truncate mt-0.5 font-medium">
             {department}
           </div>
+          <button
+            type="button"
+            onClick={() => setIsProfileModalOpen(true)}
+            className="w-full mt-3 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-blue-900 transition-colors cursor-pointer"
+          >
+            <PenTool className="w-3 h-3 text-amber-600" />
+            <span>Profile &amp; Signature</span>
+          </button>
         </div>
 
         {/* Navigation Section */}
@@ -119,6 +132,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <p className="text-[10px] text-slate-600">Email: <span className="font-mono text-slate-800 font-medium">leave@btu.ac.in</span></p>
         <p className="text-[10px] text-slate-600">Intercom: <span className="font-mono text-slate-800 font-medium">Ext. 4021</span></p>
       </div>
+
+      {/* Profile & Signature Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </aside>
   );
 };

@@ -28,6 +28,8 @@ interface LeaveSanctionOrderModalProps {
     hodComment?: string;
     contactDuringLeave?: string;
     substitutionFaculty?: string;
+    hodSignatureUrl?: string;
+    facultySignatureUrl?: string;
     approvalsHistory?: Array<{
       action: string;
       remarks?: string | null;
@@ -273,9 +275,18 @@ export const LeaveSanctionOrderModal: React.FC<LeaveSanctionOrderModalProps> = (
             {/* Authorizing HOD Seal */}
             <div className="text-right space-y-1 col-span-2 sm:col-span-1">
               <div className="border-b border-slate-900 pb-1 inline-block min-w-[140px] text-center">
-                <span className="font-serif italic font-bold text-slate-900 text-sm">
-                  Digitally Sanctioned
-                </span>
+                {leave.hodSignatureUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={leave.hodSignatureUrl}
+                    alt="HOD Signature"
+                    className="h-10 max-w-[140px] object-contain mx-auto filter contrast-125"
+                  />
+                ) : (
+                  <span className="font-serif italic font-bold text-slate-900 text-sm">
+                    Digitally Sanctioned
+                  </span>
+                )}
               </div>
               <p className="font-bold text-slate-900 text-xs">Head of Department (HOD)</p>
               <p className="text-[11px] text-slate-600">{leave.department || 'Academic Department'}</p>
