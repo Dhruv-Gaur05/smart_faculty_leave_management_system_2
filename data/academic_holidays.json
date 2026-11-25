@@ -1,0 +1,146 @@
+[
+  {
+    "id": "hol-001",
+    "title": "Republic Day",
+    "date": "2026-01-26",
+    "type": "gazetted",
+    "description": "National Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-002",
+    "title": "Maha Shivratri",
+    "date": "2026-02-15",
+    "type": "gazetted",
+    "description": "University Closed",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-003",
+    "title": "Holi",
+    "date": "2026-03-04",
+    "type": "gazetted",
+    "description": "Festival of Colours",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-004",
+    "title": "Eid-ul-Fitr",
+    "date": "2026-03-21",
+    "type": "gazetted",
+    "description": "Islamic Festival (subject to moon sighting)",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-005",
+    "title": "Mahavir Jayanti",
+    "date": "2026-04-01",
+    "type": "gazetted",
+    "description": "Religious Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-006",
+    "title": "Good Friday",
+    "date": "2026-04-03",
+    "type": "gazetted",
+    "description": "Christian Religious Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-007",
+    "title": "Buddha Purnima",
+    "date": "2026-05-01",
+    "type": "gazetted",
+    "description": "Gazetted Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-008",
+    "title": "Summer Vacation",
+    "date": "2026-06-01",
+    "type": "vacation",
+    "description": "Annual Faculty Summer Break Begins",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-009",
+    "title": "Independence Day",
+    "date": "2026-08-15",
+    "type": "gazetted",
+    "description": "National Celebration Day",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-010",
+    "title": "Milad-un-Nabi",
+    "date": "2026-08-26",
+    "type": "gazetted",
+    "description": "Prophet Birthday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-011",
+    "title": "Mahatma Gandhi Jayanti",
+    "date": "2026-10-02",
+    "type": "gazetted",
+    "description": "National Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-012",
+    "title": "Dussehra (Vijay Dashami)",
+    "date": "2026-10-20",
+    "type": "gazetted",
+    "description": "Festival Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-013",
+    "title": "Diwali (Deepavali)",
+    "date": "2026-11-09",
+    "type": "gazetted",
+    "description": "Festival of Lights",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-014",
+    "title": "Govardhan Puja",
+    "date": "2026-11-10",
+    "type": "restricted",
+    "description": "Restricted Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-015",
+    "title": "Bhai Dooj",
+    "date": "2026-11-11",
+    "type": "restricted",
+    "description": "Restricted Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-016",
+    "title": "Guru Nanak Jayanti",
+    "date": "2026-11-24",
+    "type": "gazetted",
+    "description": "Sikh Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-017",
+    "title": "Christmas Day",
+    "date": "2026-12-25",
+    "type": "gazetted",
+    "description": "Christian Holiday",
+    "academicYear": "2026-2027"
+  },
+  {
+    "id": "hol-018",
+    "title": "Winter Vacation",
+    "date": "2026-12-28",
+    "type": "vacation",
+    "description": "Annual Winter Break Begins",
+    "academicYear": "2026-2027"
+  }
+]

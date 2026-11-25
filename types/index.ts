@@ -72,3 +72,30 @@ export interface DepartmentSummary {
   totalFaculty: number;
   activeLeavesToday: number;
 }
+
+export type HolidayType = 'gazetted' | 'restricted' | 'vacation' | 'exam';
+
+export interface AcademicHoliday {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  type: HolidayType;
+  description?: string;
+  academicYear?: string;
+  createdAt?: string;
+}
+
+export interface LeaveCalculationResult {
+  totalDays: number;
+  workingDays: number;
+  weekendDays: number;
+  holidayDays: number;
+  holidays: AcademicHoliday[];
+  details: Array<{
+    date: string;
+    dayName: string;
+    isWeekend: boolean;
+    holiday?: AcademicHoliday;
+    isDeductible: boolean;
+  }>;
+}

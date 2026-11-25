@@ -13,7 +13,8 @@ import {
   Users,
   CheckCircle2,
   Mail,
-  BadgeCheck
+  BadgeCheck,
+  Calendar
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -129,6 +130,20 @@ export default function AdminDashboardPage() {
             </Button>
           </Card>
 
+          <Card title="Academic Calendar" subtitle="Holidays & Circulars">
+            <p className="text-xs text-slate-700 leading-relaxed mb-4 font-medium">
+              Upload university holiday circulars (PDF) for automated parsing, and configure public holidays.
+            </p>
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full py-2.5 rounded-lg font-bold bg-indigo-900 hover:bg-indigo-950"
+              onClick={() => router.push('/admin#calendar')}
+            >
+              <Calendar className="w-4 h-4 mr-1.5" /> Academic Calendar
+            </Button>
+          </Card>
+
           <Card title="Faculty Directory" subtitle="All University Staff">
             <p className="text-xs text-slate-700 leading-relaxed mb-4 font-medium">
               Audit staff profiles, modify roles, reset passwords, and oversee academic leave policies.
@@ -141,15 +156,6 @@ export default function AdminDashboardPage() {
             >
               <Users className="w-4 h-4 mr-1.5" /> Staff Directory
             </Button>
-          </Card>
-
-          <Card title="System Security" subtitle="Admin Guard">
-            <p className="text-xs text-slate-700 leading-relaxed mb-2 font-medium">
-              This dashboard is strictly protected for verified <strong className="text-slate-900">System Administrators</strong>.
-            </p>
-            <div className="bg-slate-100 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-800 font-mono font-medium">
-              Role: &apos;admin&apos; | RLS Enforced
-            </div>
           </Card>
         </div>
       </div>

@@ -17,6 +17,7 @@ import {
   DetailedLeaveApplication,
 } from '@/lib/supabase/faculty';
 import { LeaveTypeRow } from '@/types/database';
+import { AcademicHoliday } from '@/types';
 import {
   ArrowLeft,
   Calendar,
@@ -58,6 +59,7 @@ export default function ApplyLeavePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [academicHolidays, setAcademicHolidays] = useState<AcademicHoliday[]>([]);
 
   // Load Leave Types & existing applications from Supabase on mount
   useEffect(() => {
@@ -65,10 +67,13 @@ export default function ApplyLeavePage() {
 
     async function loadInitialData() {
       try {
-        const [types, prof, apps] = await Promise.all([
+        const [types, prof, apps, holidaysRes] = await Promise.all([
           getLeaveTypes(),
           user ? getFacultyProfile(user.id) : Promise.resolve(null),
           user ? getFacultyApplications(user.id) : Promise.resolve([]),
+          fetch('/api/calendar')
+            .then((res) => res.json())
+            .catch(() => ({ success: false, holidays: [] })),
         ]);
 
         if (isMounted) {
@@ -80,6 +85,9 @@ export default function ApplyLeavePage() {
             setDepartmentName(prof.department_name);
           }
           setApplications(apps);
+          if (holidaysRes?.success && Array.isArray(holidaysRes.holidays)) {
+            setAcademicHolidays(holidaysRes.holidays);
+          }
         }
       } catch (err) {
         console.error('Error loading leave form options:', err);
@@ -95,26 +103,80 @@ export default function ApplyLeavePage() {
     };
   }, [user]);
 
-  // Automatically calculate number of calendar days between From Date and To Date
-  const calculatedDays = useMemo(() => {
-    if (!fromDate || !toDate) return 0;
-    const start = new Date(fromDate);
-    const end = new Date(toDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-    if (end < start) return 0;
-
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
-  }, [fromDate, toDate]);
-
-  // Trace history drawer toggle
-  const [showTraceHistory, setShowTraceHistory] = useState(false);
-
   // Current selected leave type object
   const currentLeaveType = useMemo(() => {
     return leaveTypes.find((t) => t.id === selectedTypeId) || null;
   }, [leaveTypes, selectedTypeId]);
+
+  // Smart leave duration & calendar holiday deduction
+  const calendarCalculation = useMemo(() => {
+    if (!fromDate || !toDate) return null;
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return null;
+
+    const holidayMap = new Map<string, AcademicHoliday>();
+    academicHolidays.forEach((h) => holidayMap.set(h.date, h));
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const cur = new Date(start);
+    const details = [];
+    let totalDays = 0;
+    let weekendDays = 0;
+    const holidaysFound: AcademicHoliday[] = [];
+
+    const isCasualOrDuty =
+      !currentLeaveType ||
+      currentLeaveType.name.toLowerCase().includes('casual') ||
+      currentLeaveType.name.toLowerCase().includes('duty') ||
+      currentLeaveType.name.toLowerCase().includes('scl');
+
+    while (cur <= end) {
+      totalDays++;
+      const dateStr = cur.toISOString().split('T')[0];
+      const dayOfWeek = cur.getDay();
+      const isWeekend = dayOfWeek === 0; // Sunday
+      const holiday = holidayMap.get(dateStr);
+
+      if (isWeekend) weekendDays++;
+      if (holiday) holidaysFound.push(holiday);
+
+      let isDeductible = true;
+      if (isCasualOrDuty && (isWeekend || holiday)) {
+        isDeductible = false;
+      }
+
+      details.push({
+        date: dateStr,
+        dayName: dayNames[dayOfWeek],
+        isWeekend,
+        holiday,
+        isDeductible,
+      });
+
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const netDeductibleDays = isCasualOrDuty
+      ? details.filter((d) => d.isDeductible).length
+      : totalDays;
+
+    return {
+      totalDays,
+      netDeductibleDays,
+      weekendDays,
+      holidayDays: holidaysFound.length,
+      holidays: holidaysFound,
+      isCasualOrDuty,
+      details,
+    };
+  }, [fromDate, toDate, academicHolidays, currentLeaveType]);
+
+  // Automatically calculated deductible working days
+  const calculatedDays = calendarCalculation ? calendarCalculation.netDeductibleDays : 0;
+
+  // Trace history drawer toggle
+  const [showTraceHistory, setShowTraceHistory] = useState(false);
 
   // Dynamically compute real-time leave balances
   const leaveBalances = useMemo(() => {
@@ -418,25 +480,77 @@ export default function ApplyLeavePage() {
                 </div>
               </div>
 
-              {/* 4. Automatically Calculated Number of Days */}
+              {/* 4. Automatically Calculated Number of Days with Smart Calendar Deductions */}
               {fromDate && toDate && (
-                <div className={`p-4 rounded-xl border flex items-center justify-between text-xs shadow-2xs ${new Date(toDate) < new Date(fromDate)
+                <div className={`p-4 rounded-xl border space-y-3 shadow-2xs ${new Date(toDate) < new Date(fromDate)
                   ? 'bg-rose-50 border-rose-300 text-rose-950'
                   : 'bg-blue-50/90 border-blue-200 text-blue-950'
                   }`}>
-                  <div className="flex items-center space-x-2 font-medium">
-                    <Calendar className="w-4 h-4 text-blue-900 shrink-0" />
-                    <span>
-                      {new Date(toDate) < new Date(fromDate) ? (
-                        <span className="font-bold text-rose-800">Invalid Range: End date is earlier than start date</span>
-                      ) : (
-                        <span>Leave Span: <strong>{fromDate}</strong> to <strong>{toDate}</strong></span>
-                      )}
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center space-x-2 font-medium text-xs">
+                      <Calendar className="w-4 h-4 text-blue-900 shrink-0" />
+                      <span>
+                        {new Date(toDate) < new Date(fromDate) ? (
+                          <span className="font-bold text-rose-800">Invalid Range: End date is earlier than start date</span>
+                        ) : (
+                          <span>
+                            Leave Period: <strong className="font-mono">{fromDate}</strong> to <strong className="font-mono">{toDate}</strong>
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {calendarCalculation && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[11px] font-medium text-slate-600">
+                          {calendarCalculation.totalDays} Total Calendar {calendarCalculation.totalDays === 1 ? 'Day' : 'Days'}
+                        </span>
+                        <div className="font-mono font-bold text-xs sm:text-sm bg-blue-900 text-white px-3.5 py-1.5 rounded-lg shadow-2xs">
+                          {calculatedDays} {calculatedDays === 1 ? 'Working Day' : 'Working Days'} Deducted
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="font-mono font-bold text-xs sm:text-sm bg-blue-900 text-white px-3.5 py-1.5 rounded-lg shadow-2xs">
-                    {calculatedDays} {calculatedDays === 1 ? 'Calendar Day' : 'Calendar Days'}
-                  </div>
+
+                  {/* Holiday & Weekend Exclusion Breakdown */}
+                  {calendarCalculation && (calendarCalculation.weekendDays > 0 || calendarCalculation.holidayDays > 0) && (
+                    <div className="pt-2 border-t border-blue-200/80 text-[11px] text-blue-950 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold uppercase tracking-wider text-[10px] bg-blue-100 text-blue-900 px-2 py-0.5 rounded">
+                          Compliance Rule:
+                        </span>
+                        <span>
+                          {calendarCalculation.isCasualOrDuty
+                            ? `Sundays (${calendarCalculation.weekendDays}) & Declared University Holidays (${calendarCalculation.holidayDays}) are non-deductible under official Leave Statutes.`
+                            : `Continuous calendar days are counted for this leave category.`}
+                        </span>
+                      </div>
+
+                      {/* Visual Day-by-Day Strip */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {calendarCalculation.details.map((d) => (
+                          <div
+                            key={d.date}
+                            className={`px-2 py-1 rounded text-[10px] font-mono flex items-center gap-1 border ${d.holiday
+                                ? 'bg-rose-100 border-rose-300 text-rose-900 font-bold'
+                                : d.isWeekend
+                                  ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold'
+                                  : 'bg-emerald-100 border-emerald-300 text-emerald-950 font-medium'
+                              }`}
+                            title={
+                              d.holiday
+                                ? `${d.holiday.title} (${d.holiday.type}) - Excluded from quota`
+                                : d.isWeekend
+                                  ? 'Sunday - Excluded from quota'
+                                  : 'Working Academic Day - Deducted'
+                            }
+                          >
+                            <span>{d.date.slice(5)} ({d.dayName})</span>
+                            {d.holiday && <span className="text-[9px] uppercase font-bold">[{d.holiday.title.slice(0, 10)}]</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

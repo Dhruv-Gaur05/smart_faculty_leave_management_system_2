@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { CreateStaffModal } from '@/components/users/CreateStaffModal';
+import { AcademicCalendarManager } from '@/components/admin/AcademicCalendarManager';
 import { DepartmentSummary } from '@/types';
 import {
   Building2,
@@ -833,6 +834,11 @@ export default function AdminPortalPage() {
                 )}
               </div>
             </Card>
+          </div>
+
+          {/* Academic Calendar & Declared Public Holidays */}
+          <div id="calendar">
+            <AcademicCalendarManager />
           </div>
 
           {/* Complete University Staff Directory (ALL HODs & Faculty Members) */}

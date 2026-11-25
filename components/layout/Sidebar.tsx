@@ -14,6 +14,7 @@ import {
   UserCheck,
   Shield,
   ShieldCheck,
+  Calendar,
   Clock
 } from 'lucide-react';
 
@@ -50,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { name: 'System Overview', href: '/admin/dashboard', icon: Shield },
       { name: 'System Administrators', href: '/admin#administrators', icon: ShieldCheck },
       { name: 'Manage Departments', href: '/admin#departments', icon: Building2 },
+      { name: 'Academic Calendar', href: '/admin#calendar', icon: Calendar },
       { name: 'Faculty Directory', href: '/admin#directory', icon: Users },
       { name: 'Portal Logs & Audit', href: '/admin#audit', icon: FileText },
     ];

@@ -16,6 +16,7 @@ import {
   DetailedLeaveApplication,
 } from '@/lib/supabase/faculty';
 import { LeaveTypeRow } from '@/types/database';
+import { LeaveSanctionOrderModal } from '@/components/leave/LeaveSanctionOrderModal';
 import {
   FileText,
   PlusSquare,
@@ -38,6 +39,8 @@ export default function FacultyApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState<string | null>(null);
   const [departmentName, setDepartmentName] = useState('Computer Science & Engineering');
+  const [isSanctionSlipOpen, setIsSanctionSlipOpen] = useState(false);
+  const [selectedSanctionApp, setSelectedSanctionApp] = useState<DetailedLeaveApplication | null>(null);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -218,11 +221,10 @@ export default function FacultyApplicationsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
-                statusFilter === 'all'
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'all'
                   ? 'bg-blue-900 text-white border-blue-900 shadow-sm'
                   : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'all' ? 'text-blue-100' : 'text-slate-600'}`}>
                 All Applications
@@ -232,11 +234,10 @@ export default function FacultyApplicationsPage() {
 
             <button
               onClick={() => setStatusFilter('pending')}
-              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
-                statusFilter === 'pending'
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'pending'
                   ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                   : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'pending' ? 'text-amber-100' : 'text-amber-800 font-bold'}`}>
                 Pending HOD
@@ -246,11 +247,10 @@ export default function FacultyApplicationsPage() {
 
             <button
               onClick={() => setStatusFilter('approved')}
-              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
-                statusFilter === 'approved'
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'approved'
                   ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
                   : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'approved' ? 'text-emerald-100' : 'text-emerald-800 font-bold'}`}>
                 Approved
@@ -260,11 +260,10 @@ export default function FacultyApplicationsPage() {
 
             <button
               onClick={() => setStatusFilter('rejected')}
-              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${
-                statusFilter === 'rejected'
+              className={`p-3.5 text-left rounded-xl border transition-all cursor-pointer ${statusFilter === 'rejected'
                   ? 'bg-rose-700 text-white border-rose-700 shadow-sm'
                   : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <span className={`text-[10px] uppercase font-bold tracking-wider block ${statusFilter === 'rejected' ? 'text-rose-100' : 'text-rose-800 font-bold'}`}>
                 Rejected
@@ -295,11 +294,10 @@ export default function FacultyApplicationsPage() {
                     key={b.type}
                     type="button"
                     onClick={() => setCategoryFilter(isSelected ? 'all' : (b.id || b.type))}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${isSelected
                         ? 'bg-blue-50/90 border-blue-900 ring-2 ring-blue-900/20 shadow-xs'
                         : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/70'
-                    }`}
+                      }`}
                   >
                     <div>
                       <div className="flex items-center justify-between">
@@ -487,22 +485,37 @@ export default function FacultyApplicationsPage() {
                           {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
                         </td>
                         <td className="py-3 px-3.5 text-right">
-                          {app.status === 'clarification' ? (
-                            <Link
-                              href={`/faculty/applications/${app.id}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs shadow-xs transition-colors shrink-0"
-                            >
-                              <MessageSquare className="w-3 h-3 text-slate-950" />
-                              Respond
-                            </Link>
-                          ) : (
-                            <Link
-                              href={`/faculty/applications/${app.id}`}
-                              className="text-blue-900 hover:text-blue-950 font-bold hover:underline inline-flex items-center text-xs"
-                            >
-                              View Record <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                            </Link>
-                          )}
+                          <div className="flex items-center justify-end space-x-2">
+                            {app.status === 'approved' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedSanctionApp(app);
+                                  setIsSanctionSlipOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold rounded-lg text-xs shadow-2xs transition-colors shrink-0 cursor-pointer"
+                                title="Download Official Sanction Slip"
+                              >
+                                <FileText className="w-3 h-3 text-emerald-700" />
+                                Sanction Slip
+                              </button>
+                            )}
+                            {app.status === 'clarification' ? (
+                              <Link
+                                href={`/faculty/applications/${app.id}`}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs shadow-xs transition-colors shrink-0"
+                              >
+                                <MessageSquare className="w-3 h-3 text-slate-950" />
+                                Respond
+                              </Link>
+                            ) : (
+                              <Link
+                                href={`/faculty/applications/${app.id}`}
+                                className="text-blue-900 hover:text-blue-950 font-bold hover:underline inline-flex items-center text-xs"
+                              >
+                                View Record <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                              </Link>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -512,6 +525,32 @@ export default function FacultyApplicationsPage() {
             )}
           </Card>
         </div>
+
+        {selectedSanctionApp && (
+          <LeaveSanctionOrderModal
+            isOpen={isSanctionSlipOpen}
+            onClose={() => {
+              setIsSanctionSlipOpen(false);
+              setSelectedSanctionApp(null);
+            }}
+            leave={{
+              id: selectedSanctionApp.id,
+              facultyName: profile?.name || user?.email?.split('@')[0],
+              employeeId: profile?.employee_id,
+              designation: profile?.designation,
+              department: departmentName,
+              leaveType: selectedSanctionApp.leave_type?.name || 'Leave',
+              startDate: selectedSanctionApp.from_date,
+              endDate: selectedSanctionApp.to_date,
+              totalDays: Number(selectedSanctionApp.days) || 1,
+              reason: selectedSanctionApp.reason,
+              status: selectedSanctionApp.status,
+              appliedOn: selectedSanctionApp.submitted_at,
+              contactDuringLeave: selectedSanctionApp.contact_during_leave || undefined,
+              approvalsHistory: selectedSanctionApp.approvals,
+            }}
+          />
+        )}
       </div>
     </ProtectedRoute>
   );
