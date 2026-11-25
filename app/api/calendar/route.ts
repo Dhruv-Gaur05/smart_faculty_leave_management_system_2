@@ -13,9 +13,10 @@ export async function GET(req: NextRequest) {
 
     const holidays = await getAcademicHolidays(academicYear);
     return NextResponse.json({ success: true, holidays });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to fetch academic holidays';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to fetch academic holidays' },
+      { success: false, error: msg },
       { status: 500 }
     );
   }
@@ -49,9 +50,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, holiday: saved });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to save academic holiday';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to save academic holiday' },
+      { success: false, error: msg },
       { status: 500 }
     );
   }
@@ -71,9 +73,10 @@ export async function DELETE(req: NextRequest) {
 
     await deleteAcademicHoliday(id);
     return NextResponse.json({ success: true, message: 'Holiday deleted successfully' });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to delete holiday';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to delete holiday' },
+      { success: false, error: msg },
       { status: 500 }
     );
   }

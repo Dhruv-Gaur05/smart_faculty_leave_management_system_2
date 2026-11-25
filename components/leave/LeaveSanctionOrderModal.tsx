@@ -4,15 +4,9 @@ import React, { useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import {
   Printer,
-  Download,
   X,
-  GraduationCap,
   CheckCircle2,
-  ShieldCheck,
-  Calendar,
-  FileText,
-  User,
-  Building2
+  ShieldCheck
 } from 'lucide-react';
 
 interface LeaveSanctionOrderModalProps {
@@ -124,20 +118,21 @@ export const LeaveSanctionOrderModal: React.FC<LeaveSanctionOrderModalProps> = (
           {/* 1. University Official Header */}
           <div className="text-center pb-6 border-b-2 border-slate-900 space-y-1">
             <div className="flex items-center justify-center space-x-3 mb-2">
-              <div className="w-12 h-12 rounded-xl bg-slate-950 text-amber-400 flex items-center justify-center shadow-sm">
-                <GraduationCap className="w-7 h-7" />
+              <div className="w-16 h-16 rounded-xl bg-white border border-slate-300 p-1 flex items-center justify-center shadow-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/btu-logo.png" alt="BTU Crest" className="w-full h-full object-contain" />
               </div>
               <div className="text-left">
                 <h1 className="text-lg sm:text-xl font-bold uppercase tracking-wide text-slate-950 font-serif">
-                  National Academic University
+                  Bikaner Technical University
                 </h1>
                 <p className="text-[11px] font-sans font-semibold text-slate-600 uppercase tracking-widest">
-                  Office of the Registrar &amp; Faculty Academic Affairs
+                  Office of the Dean Academic Affairs &amp; Faculty Governance
                 </p>
               </div>
             </div>
             <p className="text-[11px] font-sans text-slate-500">
-              Institutional Accreditation: Category-I Deemed University • University Campus, Academic Enclave
+              State University Established by Govt. of Rajasthan • Karni Industrial Area, Pugal Road, Bikaner-334004
             </p>
           </div>
 
@@ -175,7 +170,7 @@ export const LeaveSanctionOrderModal: React.FC<LeaveSanctionOrderModalProps> = (
 
           {/* 5. Sanction Narrative Body */}
           <p className="text-xs sm:text-sm font-sans leading-relaxed text-slate-800 text-justify">
-            In accordance with the Central University Leave Statutes &amp; Ordinances (Academic Governance Rules 2026), sanction is hereby accorded by the competent authority for the grant of leave to the above-named faculty member under the terms specified below:
+            In accordance with the Bikaner Technical University Leave Statutes &amp; Ordinances (Academic Governance Rules 2026), sanction is hereby accorded by the competent authority for the grant of leave to the above-named faculty member under the terms specified below:
           </p>
 
           {/* 6. Sanction Parameter Table */}
@@ -221,7 +216,7 @@ export const LeaveSanctionOrderModal: React.FC<LeaveSanctionOrderModalProps> = (
                 {leave.hodComment && (
                   <tr className="bg-slate-50/70">
                     <td className="px-4 py-2.5 font-bold text-slate-700">7. HOD Approval Endorsement</td>
-                    <td className="px-4 py-2.5 text-slate-800 italic">"{leave.hodComment}"</td>
+                    <td className="px-4 py-2.5 text-slate-800 italic">&ldquo;{leave.hodComment}&rdquo;</td>
                   </tr>
                 )}
               </tbody>

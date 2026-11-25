@@ -48,7 +48,15 @@ export async function getAcademicHolidays(academicYear?: string): Promise<Academ
 
     const { data, error } = await query;
     if (!error && data && data.length > 0) {
-      return data.map((item: any) => ({
+      return (data as Array<{
+        id: string;
+        title: string;
+        date: string;
+        type: AcademicHoliday['type'];
+        description?: string;
+        academic_year?: string;
+        created_at: string;
+      }>).map((item) => ({
         id: item.id,
         title: item.title,
         date: item.date,
@@ -58,7 +66,7 @@ export async function getAcademicHolidays(academicYear?: string): Promise<Academ
         createdAt: item.created_at,
       }));
     }
-  } catch (err) {
+  } catch {
     // Supabase query failed or table doesn't exist yet, continue to fallback
   }
 
@@ -109,7 +117,7 @@ export async function saveAcademicHoliday(
     if (!error && data) {
       newHoliday.id = data.id;
     }
-  } catch (err) {
+  } catch {
     // Continue to local sync
   }
 

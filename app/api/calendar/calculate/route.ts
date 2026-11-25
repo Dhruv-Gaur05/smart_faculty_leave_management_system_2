@@ -14,9 +14,10 @@ export async function POST(req: NextRequest) {
 
     const result = await calculateLeaveDaysWithCalendar(fromDate, toDate, leaveType);
     return NextResponse.json({ success: true, result });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to calculate leave days';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to calculate leave days' },
+      { success: false, error: msg },
       { status: 500 }
     );
   }

@@ -123,6 +123,45 @@ export async function POST(request: Request) {
       );
     }
 
+    // 6. Dispatch in-app notification & email alert to HOD
+    try {
+      const { data: appData } = await supabaseAdmin
+        .from('leave_applications')
+        .select('from_date, to_date, days, reason, leave_types(name)')
+        .eq('id', applicationId)
+        .single();
+
+      const { dispatchWorkflowNotification } = await import('@/lib/notifications/dispatcher');
+
+      // Find HOD of department
+      const { data: hodProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, name, email')
+        .eq('department_id', caller.profile.department_id)
+        .eq('role', 'hod')
+        .limit(1)
+        .single();
+
+      if (hodProfile) {
+        await dispatchWorkflowNotification({
+          event: 'CLARIFICATION_SUBMITTED',
+          applicationId,
+          recipientId: hodProfile.id,
+          recipientEmail: hodProfile.email,
+          recipientName: hodProfile.name || 'Head of Department',
+          facultyName: caller.profile.name || 'Faculty Member',
+          leaveType: (appData as unknown as { leave_types?: { name?: string } | null })?.leave_types?.name || 'Academic Leave',
+          startDate: appData?.from_date || '',
+          endDate: appData?.to_date || '',
+          totalDays: appData?.days || 1,
+          reason: message,
+          department: caller.profile.department_id || undefined,
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Clarification dispatch warning:', notifErr);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Clarification response submitted successfully. Your application has been returned to the HOD for evaluation.',

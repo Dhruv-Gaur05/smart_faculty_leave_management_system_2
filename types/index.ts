@@ -99,3 +99,23 @@ export interface LeaveCalculationResult {
     isDeductible: boolean;
   }>;
 }
+
+export type NotificationType =
+  | 'leave_applied'
+  | 'leave_approved'
+  | 'leave_rejected'
+  | 'clarification'
+  | 'info'
+  | 'system';
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  actionUrl?: string;
+  isRead: boolean;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}

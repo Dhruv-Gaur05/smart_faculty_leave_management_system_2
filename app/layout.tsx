@@ -5,8 +5,8 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "Faculty Leave Management System | University Academic Portal",
-  description: "Official University Academic Portal for Faculty Leave Application, HOD Recommendations, and Administration",
+  title: "Bikaner Technical University (BTU) | Faculty Leave Management Portal",
+  description: "Official Bikaner Technical University Portal for Faculty Leave Application, HOD Recommendations, and Academic Administration",
 };
 
 export default function RootLayout({

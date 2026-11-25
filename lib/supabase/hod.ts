@@ -210,6 +210,43 @@ export async function recordHodDecision(
       return { success: false, error: updateErr.message };
     }
 
+    // 3. Dispatch in-app notification & email alert to the applicant faculty member
+    try {
+      const { data: appData } = await supabase
+        .from('leave_applications')
+        .select('faculty_id, from_date, to_date, days, reason, leave_types(name)')
+        .eq('id', leaveId)
+        .single();
+
+      if (appData) {
+        const eventType =
+          action === 'approved'
+            ? 'LEAVE_APPROVED'
+            : action === 'rejected'
+              ? 'LEAVE_REJECTED'
+              : 'CLARIFICATION_REQUESTED';
+
+        fetch('/api/notifications/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: eventType,
+            applicationId: leaveId,
+            facultyId: appData.faculty_id,
+            approverId,
+            leaveType: (appData as unknown as { leave_types?: { name?: string } | null })?.leave_types?.name || 'Academic Leave',
+            startDate: appData.from_date,
+            endDate: appData.to_date,
+            totalDays: appData.days,
+            reason: appData.reason,
+            remarks,
+          }),
+        }).catch((e) => console.warn('HOD decision notification warning:', e));
+      }
+    } catch {
+      // Continue without blocking
+    }
+
     return { success: true, error: null };
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error during decision';

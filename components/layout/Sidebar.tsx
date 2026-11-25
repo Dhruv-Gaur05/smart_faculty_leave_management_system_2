@@ -116,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
           Academic Helpdesk
         </p>
-        <p className="text-[10px] text-slate-600">Email: <span className="font-mono text-slate-800 font-medium">leave@university.edu</span></p>
+        <p className="text-[10px] text-slate-600">Email: <span className="font-mono text-slate-800 font-medium">leave@btu.ac.in</span></p>
         <p className="text-[10px] text-slate-600">Intercom: <span className="font-mono text-slate-800 font-medium">Ext. 4021</span></p>
       </div>
     </aside>

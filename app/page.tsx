@@ -6,8 +6,7 @@ import {
   FileText,
   CheckSquare,
   ShieldCheck,
-  ArrowRight,
-  GraduationCap
+  ArrowRight
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -16,13 +15,14 @@ export default function HomePage() {
       {/* Official Announcement Banner */}
       <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-slate-900 text-white p-6 sm:p-8 rounded-2xl border-l-8 border-amber-500 shadow-md">
         <div className="flex flex-col sm:flex-row items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0 mt-0.5">
-            <GraduationCap className="w-7 h-7" />
+          <div className="w-16 h-16 rounded-xl bg-white border border-amber-400 p-1 flex items-center justify-center shrink-0 mt-0.5 shadow-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/btu-logo.png" alt="BTU Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-blue-900/60 border border-blue-700/50 text-[11px] font-semibold text-blue-200 uppercase tracking-wider mb-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Official Academic Administration Portal
+              Bikaner Technical University (BTU) • Academic Administration Portal
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white uppercase font-serif">
               Faculty Leave Management &amp; Approval System

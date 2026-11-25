@@ -13,11 +13,7 @@ import {
   AlertCircle,
   FileText,
   Search,
-  Filter,
-  RefreshCw,
-  Edit2,
-  Check,
-  X
+  RefreshCw
 } from 'lucide-react';
 
 export const AcademicCalendarManager: React.FC = () => {
@@ -43,12 +39,6 @@ export const AcademicCalendarManager: React.FC = () => {
   const [newDescription, setNewDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Inline editing state
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDate, setEditDate] = useState('');
-  const [editType, setEditType] = useState<AcademicHoliday['type']>('gazetted');
-
   // Load holidays
   const fetchHolidays = async () => {
     try {
@@ -58,7 +48,7 @@ export const AcademicCalendarManager: React.FC = () => {
       if (data.success && Array.isArray(data.holidays)) {
         setHolidays(data.holidays);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load academic holidays:', err);
     } finally {
       setLoading(false);
@@ -66,7 +56,25 @@ export const AcademicCalendarManager: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchHolidays();
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/calendar');
+        const data = await res.json();
+        if (isMounted && data.success && Array.isArray(data.holidays)) {
+          setHolidays(data.holidays);
+        }
+      } catch (err: unknown) {
+        console.error('Failed to load academic holidays:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Handle PDF file selection
@@ -109,8 +117,9 @@ export const AcademicCalendarManager: React.FC = () => {
       setExtractedCandidates(data.extracted);
       setSelectedCandidates(new Array(data.extracted.length).fill(true));
       setShowReviewModal(true);
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err?.message || 'Error communicating with PDF parsing service' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error communicating with PDF parsing service';
+      setStatusMessage({ type: 'error', text: msg });
     } finally {
       setUploadingPdf(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -144,8 +153,9 @@ export const AcademicCalendarManager: React.FC = () => {
       } else {
         setStatusMessage({ type: 'error', text: data.error || 'Failed to save holidays' });
       }
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err?.message || 'Failed to save extracted holidays' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save extracted holidays';
+      setStatusMessage({ type: 'error', text: msg });
     } finally {
       setSubmitting(false);
     }
@@ -184,8 +194,9 @@ export const AcademicCalendarManager: React.FC = () => {
       } else {
         setStatusMessage({ type: 'error', text: data.error || 'Failed to add holiday' });
       }
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err?.message || 'Error adding holiday' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error adding holiday';
+      setStatusMessage({ type: 'error', text: msg });
     } finally {
       setSubmitting(false);
     }
@@ -206,8 +217,9 @@ export const AcademicCalendarManager: React.FC = () => {
       } else {
         setStatusMessage({ type: 'error', text: data.error || 'Failed to delete' });
       }
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err?.message || 'Error deleting holiday' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error deleting holiday';
+      setStatusMessage({ type: 'error', text: msg });
     }
   };
 
@@ -584,7 +596,7 @@ export const AcademicCalendarManager: React.FC = () => {
                             value={c.type}
                             onChange={(e) => {
                               const updated = [...extractedCandidates];
-                              updated[idx] = { ...updated[idx], type: e.target.value as any };
+                              updated[idx] = { ...updated[idx], type: e.target.value as AcademicHoliday['type'] };
                               setExtractedCandidates(updated);
                             }}
                             className="border border-slate-200 rounded px-2 py-1 text-xs bg-white text-slate-900"
@@ -682,7 +694,7 @@ export const AcademicCalendarManager: React.FC = () => {
                   </label>
                   <select
                     value={newType}
-                    onChange={(e) => setNewType(e.target.value as any)}
+                    onChange={(e) => setNewType(e.target.value as AcademicHoliday['type'])}
                     className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-900 text-slate-900 bg-white"
                   >
                     <option value="gazetted">Gazetted (Mandatory)</option>

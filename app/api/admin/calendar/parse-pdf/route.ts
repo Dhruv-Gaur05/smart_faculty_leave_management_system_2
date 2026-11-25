@@ -93,11 +93,12 @@ export async function POST(req: NextRequest) {
     try {
       const data = await pdfParse(buffer);
       parsedText = data.text || '';
-    } catch (parseErr: any) {
+    } catch (parseErr: unknown) {
+      const msg = parseErr instanceof Error ? parseErr.message : 'Invalid or encrypted PDF file';
       return NextResponse.json(
         {
           success: false,
-          error: `Could not parse PDF text: ${parseErr?.message || 'Invalid or encrypted PDF file'}`,
+          error: `Could not parse PDF text: ${msg}`,
         },
         { status: 422 }
       );
@@ -139,8 +140,8 @@ export async function POST(req: NextRequest) {
         matchedSubstring = numMatch[0];
         if (numMatch[1] && numMatch[2] && numMatch[3]) {
           // DD-MM-YYYY or MM-DD-YYYY
-          let day = parseInt(numMatch[1], 10);
-          let month = parseInt(numMatch[2], 10);
+          const day = parseInt(numMatch[1], 10);
+          const month = parseInt(numMatch[2], 10);
           let year = parseInt(numMatch[3], 10);
           if (year < 100) year += 2000;
           if (day > 12 && month <= 12) {
@@ -236,10 +237,11 @@ export async function POST(req: NextRequest) {
       extracted: extractedHolidays,
       rawSnippet: parsedText.substring(0, 300),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('PDF parsing error:', err);
+    const msg = err instanceof Error ? err.message : 'Internal server error while parsing PDF';
     return NextResponse.json(
-      { success: false, error: err?.message || 'Internal server error while parsing PDF' },
+      { success: false, error: msg },
       { status: 500 }
     );
   }

@@ -30,12 +30,10 @@ import {
   Phone,
   UploadCloud,
   Info,
-  Clock,
   History,
   ChevronDown,
   ChevronUp,
-  Layers,
-  FileText
+  Layers
 } from 'lucide-react';
 
 export default function ApplyLeavePage() {
@@ -292,6 +290,22 @@ export default function ApplyLeavePage() {
         setSuccessMessage(
           `Leave application (ID: ${data.id}) submitted successfully! Your application is now Pending HOD review.`
         );
+
+        // Dispatch unified in-app notification & email alert to HOD
+        fetch('/api/notifications/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'NEW_LEAVE_APPLICATION',
+            applicationId: data.id,
+            facultyId: user.id,
+            leaveType: currentLeaveType?.name || 'Casual Leave',
+            startDate: fromDate,
+            endDate: toDate,
+            totalDays: calculatedDays,
+            reason: reason.trim(),
+          }),
+        }).catch((e) => console.warn('Notification dispatch error:', e));
 
         // Redirect to /faculty/applications so the faculty sees the newly submitted application as Pending
         setTimeout(() => {

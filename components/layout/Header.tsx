@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import {
   GraduationCap,
   Menu,
@@ -50,17 +51,17 @@ export const Header: React.FC = () => {
     <header className="bg-slate-950 text-white border-b-2 border-amber-500 shadow-lg">
       {/* Top Academic Strip */}
       <div className="bg-slate-900/90 text-slate-300 text-xs py-1.5 px-4 sm:px-6 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex justify-between items-center text-[11px]">
+        <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center gap-2 font-medium tracking-wider text-slate-300">
             <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-            <span className="uppercase font-semibold">Central University Academic Governance Portal</span>
+            <span className="uppercase font-semibold text-slate-200">Bikaner Technical University (BTU) Academic Portal</span>
           </div>
-          <div className="hidden sm:flex items-center space-x-4 text-slate-400">
+          <div className="hidden sm:flex items-center space-x-4 text-slate-300 text-xs">
             <span className="bg-slate-800/80 px-2 py-0.5 rounded text-slate-300 border border-slate-700/50">
               Academic Session 2026 – 2027
             </span>
             {user && (
-              <span className="text-emerald-400 font-mono font-medium flex items-center gap-1.5 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/40">
+              <span className="text-emerald-400 font-mono font-medium flex items-center gap-1.5 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/40 text-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 {profile?.name || user.email} ({role?.toUpperCase() || 'STAFF'})
               </span>
@@ -72,16 +73,17 @@ export const Header: React.FC = () => {
       {/* Main Header Banner */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
         <Link href="/" className="flex items-center space-x-3 group">
-          {/* University Crest */}
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-700 via-blue-900 to-indigo-950 border border-amber-400/40 shadow-sm flex items-center justify-center text-amber-300 group-hover:scale-105 transition-transform shrink-0">
-            <GraduationCap className="w-6 h-6" />
+          {/* Official BTU Crest */}
+          <div className="w-11 h-11 rounded-xl bg-white border border-amber-400/60 shadow-sm flex items-center justify-center p-1 group-hover:scale-105 transition-transform shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/btu-logo.png" alt="BTU Emblem" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold tracking-tight text-white uppercase font-serif flex items-center gap-2">
-              <span>National University Portal</span>
+              <span>Bikaner Technical University</span>
             </h1>
-            <p className="text-[11px] sm:text-xs text-blue-200/90 font-medium tracking-wide">
-              Faculty Leave Management &amp; Approval System
+            <p className="text-[11px] sm:text-xs text-amber-300 font-medium tracking-wide">
+              Faculty Leave Management &amp; Academic Governance System
             </p>
           </div>
         </Link>
@@ -107,6 +109,13 @@ export const Header: React.FC = () => {
               );
             })}
           </nav>
+
+          {/* Notification Bell */}
+          {user && (
+            <div className="mr-2">
+              <NotificationBell />
+            </div>
+          )}
 
           {/* User Auth Action in Header */}
           {user ? (
@@ -142,7 +151,8 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Mobile menu toggle */}
-        <div className="lg:hidden">
+        <div className="lg:hidden flex items-center space-x-1">
+          {user && <NotificationBell />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 text-slate-200 hover:text-white focus:outline-none"
